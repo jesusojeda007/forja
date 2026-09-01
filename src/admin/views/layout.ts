@@ -273,12 +273,14 @@ function applyNiche(item: Item, niche: NichePack | null): Item {
   return { ...item, label: niche.navLabel, icon: niche.navIcon };
 }
 
-function sidebar(activeTab: string, pro: boolean, niche: NichePack | null): string {
+function sidebar(activeTab: string, pro: boolean, niche: NichePack | null, disabledTabs: Set<string>): string {
   const locked = (id: string) => !pro && (PRO_ONLY_TABS as readonly string[]).includes(id);
   const sections = NAV.map((sec) => {
-    const hasActive = sec.items.some((i) => i.id === activeTab);
+    const visibleItems = sec.items.filter((i) => !disabledTabs.has(i.id));
+    if (visibleItems.length === 0) return "";
+    const hasActive = visibleItems.some((i) => i.id === activeTab);
     const labelColor = hasActive ? "var(--accent)" : "var(--dim)";
-    const items = sec.items
+    const items = visibleItems
       .map((raw) => {
         const i = applyNiche(raw, niche);
         return locked(i.id) ? navItemLocked(i) : navItem(i, i.id === activeTab);
@@ -319,6 +321,9 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   // se asume Pro para no ocultar nada por accidente.
   const pro = opts.env ? isPro(opts.env) : true;
   const niche = opts.env ? getNiche(opts.env) : null;
+  const disabledTabs = new Set(
+    (opts.env?.DISABLED_TABS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+  );
   const section = NAV.find((s) => s.items.some((i) => i.id === opts.activeTab)) ?? NAV[0];
   const item = applyNiche(section.items.find((i) => i.id === opts.activeTab) ?? section.items[0], niche);
 
@@ -333,7 +338,7 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
 </head>
 <body class="scanlines">
   <div class="shell">
-    ${sidebar(opts.activeTab, pro, niche)}
+    ${sidebar(opts.activeTab, pro, niche, disabledTabs)}
     <div style="display:flex;flex-direction:column;min-width:0">
       <header style="position:sticky;top:0;z-index:30;background:rgba(20,16,9,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;gap:20px">
         <div style="min-width:0">

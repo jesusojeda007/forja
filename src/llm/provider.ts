@@ -138,7 +138,9 @@ export function createModel(env: Env, tier: Tier, ov?: LlmOverrides): ResolvedMo
   const modelId = useOvModel || modelIdFor(env, provider, tier);
 
   if (provider === "openai") {
-    const openai = createOpenAI({ apiKey });
+    // baseURL override lets this point at an OpenAI-COMPATIBLE gateway (e.g. OpenCode
+    // Zen) instead of api.openai.com — same request shape, different backend.
+    const openai = createOpenAI({ apiKey, baseURL: env.OPENAI_BASE_URL?.trim() || undefined });
     return { provider, modelId, model: openai(modelId), supportsPromptCache: false };
   }
 

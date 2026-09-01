@@ -21,6 +21,10 @@ export interface Env {
   // re-etiqueta el dashboard, aporta el playbook del giro y sus columnas.
   // Ausente/desconocido → pack genérico (comportamiento actual). Ver src/niches/.
   BOT_NICHE?: string;
+  // Pestañas del panel /admin que no aplican a este negocio (ej. "tickets" para
+  // una tienda sin mesa de soporte formal). Ids de NAV en admin/views/layout.ts,
+  // separados por coma. Ausente = todas visibles (comportamiento actual).
+  DISABLED_TABS?: string;
   // LLM provider for the chat brain: "anthropic" (default) | "openai".
   // If unset and only OPENAI_API_KEY is present, auto-selects "openai".
   // (Voice transcription + embeddings always run on Cloudflare Workers AI.)
@@ -36,6 +40,10 @@ export interface Env {
   // Secrets (member-set via wrangler secret put)
   ANTHROPIC_API_KEY: string;
   OPENAI_API_KEY?: string;  // alternative LLM provider (see LLM_PROVIDER)
+  // Optional override for OpenAI-COMPATIBLE gateways (OpenCode Zen, OpenRouter, etc.)
+  // that proxy chat-completions under an OpenAI-shaped API but aren't api.openai.com.
+  // Unset = talk to OpenAI directly (default @ai-sdk/openai behavior).
+  OPENAI_BASE_URL?: string;
   RESEND_API_KEY?: string;
   TELEGRAM_BOT_TOKEN?: string;
   MANYCHAT_API_KEY?: string;
