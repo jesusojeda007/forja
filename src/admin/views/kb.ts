@@ -75,12 +75,12 @@ export async function renderKbList(
         <p class="text-muted text-[12.5px]" style="margin-top:2px">Lo que tu bot sabe del negocio. Cada documento se indexa al guardar y el bot lo usa de inmediato.</p>
       </div>
       <a href="/admin/kb/new" class="bigbtn font-display font-bold text-[12.5px] cursor-pointer"
-         style="margin-left:auto;background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:3px 3px 0 var(--linelit);padding:9px 16px;display:flex;align-items:center;gap:8px;white-space:nowrap">
+         style="margin-left:auto;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:9px 16px;display:flex;align-items:center;gap:8px;white-space:nowrap">
         <i data-lucide="plus" width="14" height="14"></i> Nuevo documento
       </a>
     </div>
 
-    <div class="bg-panel border border-line" style="margin-bottom:16px;overflow:hidden">
+    <div class="bg-panel border border-line rounded-xl" style="margin-bottom:16px;overflow:hidden">
       ${rows}
     </div>
 
@@ -104,7 +104,7 @@ export function renderKbEditor(doc: KbDoc | null, env: Env): string {
         <i data-lucide="arrow-left" width="14" height="14"></i> Volver a Conocimiento
       </a>
     </div>
-    <form method="POST" action="/admin/kb/save" class="bg-panel border border-line" style="padding:22px;display:flex;flex-direction:column;gap:18px">
+    <form method="POST" action="/admin/kb/save" class="bg-panel border border-line rounded-xl" style="padding:22px;display:flex;flex-direction:column;gap:18px">
       <h2 class="font-display font-semibold text-[15px] text-cream">${isNew ? "＋ Nuevo documento" : "Editar documento"}</h2>
       ${isNew ? "" : `<input type="hidden" name="id" value="${esc(doc.id)}">`}
 
@@ -126,7 +126,7 @@ export function renderKbEditor(doc: KbDoc | null, env: Env): string {
 
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
         <button type="submit" class="bigbtn font-display font-bold text-[12.5px] cursor-pointer"
-                style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:4px 4px 0 var(--linelit);padding:11px 20px">Guardar e indexar</button>
+                style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:11px 20px">Guardar e indexar</button>
         ${isNew ? "" : `
         <details style="margin-left:auto">
           <summary class="text-bad text-[12px]" style="cursor:pointer;list-style:none">Eliminar documento…</summary>

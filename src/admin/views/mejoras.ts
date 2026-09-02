@@ -38,7 +38,7 @@ const STATUS_BADGE: Record<string, { txt: string; color: string }> = {
 };
 
 function pill(txt: string, color: string): string {
-  return `<span style="font-size:9px;letter-spacing:.03em;color:${color};border:1px solid ${color};padding:1px 6px;white-space:nowrap">${txt}</span>`;
+  return `<span style="font-size:9px;letter-spacing:.03em;color:${color};border:1px solid ${color};border-radius:999px;padding:1px 6px;white-space:nowrap">${txt}</span>`;
 }
 
 function suggestionCard(s: Suggestion): string {
@@ -67,7 +67,7 @@ function suggestionCard(s: Suggestion): string {
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
       <form method="POST" action="/admin/mejoras/${encodeURIComponent(s.id)}/apply">
         <button class="bigbtn font-display font-bold text-[11.5px] cursor-pointer"
-                style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:3px 3px 0 var(--linelit);padding:8px 16px">Aplicar</button>
+                style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:8px 16px">Aplicar</button>
       </form>
       <form method="POST" action="/admin/mejoras/${encodeURIComponent(s.id)}/dismiss">
         <button class="ghostbtn cursor-pointer"
@@ -101,7 +101,7 @@ export async function renderMejoras(
 
   const proposedList = proposed.length
     ? proposed.map(suggestionCard).join("")
-    : `<div class="bg-panel border border-line text-dim text-[12.5px]" style="padding:32px;text-align:center">
+    : `<div class="bg-panel border border-line rounded-xl text-dim text-[12.5px]" style="padding:32px;text-align:center">
          Sin mejoras pendientes. El sistema busca cada noche — o presiona "Buscar mejoras ahora".
        </div>`;
 
@@ -148,13 +148,13 @@ export async function renderMejoras(
       </div>
       <form method="POST" action="/admin/mejoras/run" style="margin-left:auto">
         <button class="bigbtn font-display font-bold text-[12.5px] cursor-pointer"
-                style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:3px 3px 0 var(--linelit);padding:9px 16px;display:flex;align-items:center;gap:8px;white-space:nowrap">
+                style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:9px 16px;display:flex;align-items:center;gap:8px;white-space:nowrap">
           <i data-lucide="sparkles" width="14" height="14"></i> Buscar mejoras ahora
         </button>
       </form>
     </div>
 
-    <div class="bg-panel border border-line" style="padding:14px 18px;margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+    <div class="bg-panel border border-line rounded-xl" style="padding:14px 18px;margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
       <div style="flex:1;min-width:220px">
         <div class="font-display font-semibold text-[13px] text-cream" style="display:flex;align-items:center;gap:8px">
           <i data-lucide="moon" width="13" height="13"></i> Modo nocturno
@@ -178,12 +178,12 @@ export async function renderMejoras(
     <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">${proposedList}</div>
 
     <div style="display:grid;grid-template-columns:1fr;gap:16px" class="md:grid-cols-2">
-      <div class="bg-panel border border-line" style="padding:18px">
+      <div class="bg-panel border border-line rounded-xl" style="padding:18px">
         <div class="font-display font-semibold text-[13.5px] text-cream" style="margin-bottom:8px">🎓 Lecciones activas en el prompt <span class="text-dim" style="font-weight:400;font-size:11px">(${lessons.length}/${MAX_LESSONS})</span></div>
         <p class="text-dim text-[11.5px]" style="margin-bottom:12px">Reglas aprendidas de tus intervenciones. El bot las sigue en cada respuesta (solo con prompt automático).</p>
         ${lessonRows}
       </div>
-      <div class="bg-panel border border-line" style="padding:18px">
+      <div class="bg-panel border border-line rounded-xl" style="padding:18px">
         <div class="font-display font-semibold text-[13.5px] text-cream" style="margin-bottom:8px">📓 Historial</div>
         ${historyRows}
       </div>

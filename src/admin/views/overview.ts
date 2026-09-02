@@ -186,7 +186,7 @@ export async function renderOverview(env: Env): Promise<string> {
         </div>
       </div>
       <a href="/admin/agente" class="bigbtn font-display font-bold text-[12.5px] cursor-pointer flex items-center justify-center gap-2"
-         style="background:var(--accent);color:#ffffff;border:1px solid var(--accent);box-shadow:4px 4px 0 var(--linelit);padding:13px;margin-top:18px">
+         style="background:var(--accent);color:#ffffff;border:1px solid var(--accent);padding:13px;margin-top:18px">
         <i data-lucide="settings-2" width="16" height="16"></i> Ajustar mi agente
       </a>
     </div>`;
@@ -309,21 +309,21 @@ export async function renderOverview(env: Env): Promise<string> {
         <div class="mt-3" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           ${
             openTickets > 0
-              ? `<span style="font-size:9px;color:var(--bad);border:1px solid var(--bad);padding:1px 6px">⚠ ${openTickets} tickets abiertos</span>`
-              : `<span style="font-size:9px;color:var(--ok);border:1px solid var(--ok);padding:1px 6px">✓ 0 tickets abiertos</span>`
+              ? `<span style="font-size:9px;color:var(--bad);border:1px solid var(--bad);border-radius:999px;padding:1px 6px">⚠ ${openTickets} tickets abiertos</span>`
+              : `<span style="font-size:9px;color:var(--ok);border:1px solid var(--ok);border-radius:999px;padding:1px 6px">✓ 0 tickets abiertos</span>`
           }
           ${(() => {
             // Cuando el bot escala a humano, ¿alguien se entera? Antes esto
             // fallaba en silencio; ahora se ve aquí en rojo si falta configurar.
             const notify = handoffNotifyStatus(env);
             return notify.ok
-              ? `<span style="font-size:9px;color:var(--ok);border:1px solid var(--ok);padding:1px 6px">✓ handoff avisa por ${notify.channels.join(" + ")}</span>`
-              : `<span style="font-size:9px;color:var(--bad);border:1px solid var(--bad);padding:1px 6px">⚠ HANDOFF SIN AVISO — el bot crea tickets pero NADIE recibe notificación (configura Telegram, WhatsApp o email del dueño)</span>`;
+              ? `<span style="font-size:9px;color:var(--ok);border:1px solid var(--ok);border-radius:999px;padding:1px 6px">✓ handoff avisa por ${notify.channels.join(" + ")}</span>`
+              : `<span style="font-size:9px;color:var(--bad);border:1px solid var(--bad);border-radius:999px;padding:1px 6px">⚠ HANDOFF SIN AVISO — el bot crea tickets pero NADIE recibe notificación (configura Telegram, WhatsApp o email del dueño)</span>`;
           })()}
           ${(() => {
             const conn = connectionsSummary(env);
             const ok = conn.connected > 0;
-            return `<a href="/admin/conexiones" style="font-size:9px;color:${ok ? "var(--ok)" : "var(--bad)"};border:1px solid ${ok ? "var(--ok)" : "var(--bad)"};padding:1px 6px;text-decoration:none">${ok ? "✓" : "⚠"} ${conn.connected}/${conn.total} canales conectados</a>`;
+            return `<a href="/admin/conexiones" style="font-size:9px;color:${ok ? "var(--ok)" : "var(--bad)"};border:1px solid ${ok ? "var(--ok)" : "var(--bad)"};border-radius:999px;padding:1px 6px;text-decoration:none">${ok ? "✓" : "⚠"} ${conn.connected}/${conn.total} canales conectados</a>`;
           })()}
         </div>
       </section>

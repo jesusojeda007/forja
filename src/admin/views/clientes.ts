@@ -28,7 +28,7 @@ function pipelineBadge(status: string | null, env?: Env): string {
   const label = niche?.statusLabels[status as keyof typeof niche.statusLabels] ?? status;
   const color =
     status === "sold" ? "var(--ok, #15803d)" : status === "lost" ? "var(--dim)" : "var(--accent)";
-  return `<span style="font-size:11px;color:${color};border:1px solid var(--line);padding:3px 8px">${esc(label)}</span>`;
+  return `<span style="font-size:11px;color:${color};border:1px solid var(--line);border-radius:6px;padding:3px 8px">${esc(label)}</span>`;
 }
 
 function channelChips(channels: string | null): string {
@@ -59,7 +59,7 @@ export async function renderClientes(env: Env, opts: { q?: string; f?: string })
         c.pending_count > 0
           ? `<span style="font-size:11px;color:var(--warn, #b45309)">⏳ ${c.pending_count} pago${c.pending_count > 1 ? "s" : ""} sin confirmar (${fmtBs(c.pending_sum)})</span>`
           : `<span class="text-dim" style="font-size:11px">sin pagos pendientes</span>`;
-      return `<a href="/admin/clientes/${encodeURIComponent(c.channel_user_id)}" class="bg-panel"
+      return `<a href="/admin/clientes/${encodeURIComponent(c.channel_user_id)}" class="bg-panel rounded-xl"
         style="display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);padding:16px 18px;text-decoration:none;transition:border-color .12s ease"
         onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--line)'">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
@@ -111,7 +111,7 @@ export async function renderCliente(env: Env, channelUserId: string): Promise<st
   const statusLabel = (s: string) => niche.statusLabels[s as keyof typeof niche.statusLabels] ?? s;
 
   const section = (title: string, inner: string) => `
-    <div class="bg-panel" style="border:1px solid var(--line);padding:18px">
+    <div class="bg-panel rounded-xl" style="border:1px solid var(--line);padding:18px">
       <div style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:10px">${title}</div>
       ${inner}
     </div>`;
@@ -176,11 +176,11 @@ export async function renderCliente(env: Env, channelUserId: string): Promise<st
         <div style="margin-top:8px">${c.conversations.map((cv) => channelChips(cv.channel)).join(" ")}</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="bg-panel" style="border:1px solid var(--line);padding:12px 16px;text-align:center">
+        <div class="bg-panel rounded-xl" style="border:1px solid var(--line);padding:12px 16px;text-align:center">
           <div class="text-cream font-semibold" style="font-size:16px">${fmtBs(ltv)}</div>
           <div class="text-dim" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase">LTV confirmado</div>
         </div>
-        <div class="bg-panel" style="border:1px solid var(--line);padding:12px 16px;text-align:center">
+        <div class="bg-panel rounded-xl" style="border:1px solid var(--line);padding:12px 16px;text-align:center">
           <div class="text-cream font-semibold" style="font-size:16px">${pend.length ? fmtBs(pend.reduce((s, p) => s + p.monto, 0)) : "—"}</div>
           <div class="text-dim" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase">Pendiente (${pend.length})</div>
         </div>

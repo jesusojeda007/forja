@@ -105,7 +105,7 @@ export async function renderLeads(env: Env): Promise<string> {
         <i data-lucide="download" width="14" height="14"></i> Exportar CSV
       </a>
     </div>
-    <div class="bg-panel border border-line" style="overflow-x:auto">
+    <div class="bg-panel border border-line rounded-xl" style="overflow-x:auto">
       <div style="min-width:${minWidth}px">
         <div style="display:grid;grid-template-columns:${gridCols};gap:12px;padding:10px 18px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)">
           ${header}

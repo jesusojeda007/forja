@@ -134,7 +134,7 @@ function renderLlmSection(settings: Record<string, string>, llmTest?: string): s
   }
 
   return `
-    <div class="bg-panel border border-line" style="padding:20px;display:flex;flex-direction:column;gap:18px">
+    <div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;flex-direction:column;gap:2px">
         <h3 class="font-display font-semibold text-[13.5px] text-cream">🧠 Modelo de IA</h3>
         <p class="text-dim text-[12px]">Elige qué inteligencia artificial usa tu bot. Puedes usar tu propia API key para pagar tú el consumo directamente. Si lo dejas en automático, el bot usa la configuración incluida (rápido para lo simple, inteligente para lo difícil).</p>
@@ -202,7 +202,7 @@ export function renderConfig(
       </div>
 
       <!-- Card-based controls (tono, velocidad, estilo, cerebro, estado) -->
-      <div class="bg-panel border border-line" style="padding:20px;display:flex;flex-direction:column;gap:22px">
+      <div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:22px">
         ${cardGroups}
       </div>
 
@@ -210,7 +210,7 @@ export function renderConfig(
       ${renderLlmSection(settings, llmTest)}
 
       <!-- Free-text settings -->
-      <div class="bg-panel border border-line" style="padding:20px;display:flex;flex-direction:column;gap:18px">
+      <div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:18px">
         ${renderTextField({
           name: SETTING_KEYS.botName,
           label: "Nombre del bot",
@@ -299,7 +299,7 @@ export function renderConfig(
       </div>
 
       <button type="submit" class="bigbtn font-display font-bold text-[13px] cursor-pointer"
-              style="width:fit-content;background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:4px 4px 0 var(--linelit);padding:13px 24px;display:flex;align-items:center;gap:9px">
+              style="width:fit-content;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:13px 24px;display:flex;align-items:center;gap:9px">
         <i data-lucide="check" width="16" height="16"></i> Guardar cambios
       </button>
     </form>`;

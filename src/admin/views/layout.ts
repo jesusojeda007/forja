@@ -70,7 +70,7 @@ const NAV: Section[] = [
 const HEAD_ASSETS = `
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -78,20 +78,20 @@ const HEAD_ASSETS = `
       theme: {
         extend: {
           colors: {
-            bg: "#fafaf9",
+            bg: "#fafafa",
             panel: "#fefefe",
-            panel2: "#f4f3f1",
-            raise: "#eceae6",
-            line: "#e5e3df",
-            linelit: "#cfccc6",
-            accent: { DEFAULT: "#c2410c", soft: "rgba(194,65,12,.10)" },
+            panel2: "#f4f4f5",
+            raise: "#e9e9eb",
+            line: "#e4e4e7",
+            linelit: "#d4d4d8",
+            accent: { DEFAULT: "#c2410c", soft: "rgba(194,65,12,.08)" },
             accent2: "#b45309",
-            cream: "#1c1917",
-            muted: "#57534e",
-            dim: "#79716b",
+            cream: "#18181b",
+            muted: "#52525b",
+            dim: "#71717a",
             ok: "#15803d",
             info: "#2563eb",
-            bad: "#b91c1c",
+            bad: "#dc2626",
             violet: "#7c3aed",
           },
           fontFamily: {
@@ -112,90 +112,102 @@ const GLOBAL_STYLE = `
 <style>
   :root{
     color-scheme:light;
-    --bg:#fafaf9; --panel:#fefefe; --panel2:#f4f3f1; --raise:#eceae6;
-    --line:#e5e3df; --linelit:#cfccc6;
-    --accent:#c2410c; --accent-2:#b45309; --accent-soft:rgba(194,65,12,.10);
-    --cream:#1c1917; --muted:#57534e; --dim:#79716b;
-    --ok:#15803d; --info:#2563eb; --bad:#b91c1c; --violet:#7c3aed;
+    /* Escala de forma (lockeada): tarjetas 12, controles 8, pills full. */
+    --r-card:12px; --r-ctl:8px; --r-pill:999px;
+    --shadow-soft:0 1px 2px rgba(24,24,27,.05),0 1px 3px rgba(24,24,27,.05);
+    --shadow-pop:0 8px 24px rgba(24,24,27,.12);
+    --bg:#fafafa; --panel:#fefefe; --panel2:#f4f4f5; --raise:#e9e9eb;
+    --line:#e4e4e7; --linelit:#d4d4d8;
+    --accent:#c2410c; --accent-2:#b45309; --accent-soft:rgba(194,65,12,.08);
+    --cream:#18181b; --muted:#52525b; --dim:#71717a;
+    --ok:#15803d; --info:#2563eb; --bad:#dc2626; --violet:#7c3aed;
     /* legacy aliases kept so mockup-derived snippets keep working */
-    --border:#e5e3df; --border-lit:#cfccc6; --green:#15803d; --blue:#2563eb; --red:#b91c1c;
+    --border:#e4e4e7; --border-lit:#d4d4d8; --green:#15803d; --blue:#2563eb; --red:#dc2626;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--cream);
-    font-family:'JetBrains Mono',ui-monospace,monospace;-webkit-font-smoothing:antialiased}
+    font-family:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  ::selection{background:rgba(194,65,12,.14)}
   a{color:var(--accent);text-decoration:none}
   a:hover{color:var(--accent-2)}
-  ::-webkit-scrollbar{width:10px;height:10px}
-  ::-webkit-scrollbar-track{background:var(--bg)}
-  ::-webkit-scrollbar-thumb{background:var(--linelit);border-radius:0}
-  ::-webkit-scrollbar-thumb:hover{background:var(--accent)}
-  input,textarea,select{font-family:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--linelit);border-radius:99px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+  input,textarea,select{font-family:inherit;border-radius:var(--r-ctl)}
   input::placeholder,textarea::placeholder{color:var(--dim)}
   input[type="range"]{accent-color:var(--accent);height:4px}
 
   /* keyframes */
   @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.82)}}
-  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(21,128,61,.45)}100%{box-shadow:0 0 0 8px rgba(21,128,61,0)}}
-  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(21,128,61,.35)}100%{box-shadow:0 0 0 8px rgba(21,128,61,0)}}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes popIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
   @keyframes toastOut{to{opacity:0;transform:translateY(8px);visibility:hidden}}
 
-  /* Overlay del tema anterior (terminal): en claro no aporta y ensuciaba el
-     blanco. La clase sigue en <body> por compatibilidad, pero ya no dibuja. */
+  /* Overlay del tema anterior: en claro no aporta. La clase queda en <body>
+     por compatibilidad pero ya no dibuja nada. */
   .scanlines::after{content:none}
 
   /* sidebar nav */
+  .navlink{border-radius:var(--r-ctl)}
   .navlink:hover{background:var(--panel2);color:var(--cream)}
   .navlink:hover [data-lucide]{color:var(--accent)}
 
-  /* entrance + brutalist buttons */
-  .card{animation:rise .4s cubic-bezier(.16,1,.3,1) both}
-  .bigbtn{transition:transform .12s ease,box-shadow .12s ease}
-  .bigbtn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--linelit)}
-  .bigbtn:active{transform:translate(0,0);box-shadow:2px 2px 0 var(--linelit)}
-  .ghostbtn:hover{border-color:var(--accent);color:var(--cream);background:var(--accent-soft)}
-  .glow{text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  /* cards + botones (redondeados, sombra suave, feedback táctil) */
+  .card{border-radius:var(--r-card);box-shadow:var(--shadow-soft);animation:rise .35s cubic-bezier(.16,1,.3,1) both}
+  .bigbtn{border-radius:10px;font-weight:600;box-shadow:var(--shadow-soft);
+    transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+  .bigbtn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(24,24,27,.14);filter:brightness(1.05)}
+  .bigbtn:active{transform:scale(.98);box-shadow:0 1px 2px rgba(24,24,27,.08)}
+  .ghostbtn{border-radius:var(--r-ctl);font-weight:500}
+  .ghostbtn:hover{border-color:var(--linelit);color:var(--cream);background:var(--panel2)}
+  .glow{ }
 
-  /* list / table rows + interactive bits reused across views */
-  .convrow:hover{background:var(--panel2)}
+  /* listas / tablas: filas con hover suave y esquinas propias */
+  .convrow,.leadrow,.datarow,.kbrow{border-radius:var(--r-ctl)}
+  .convrow:hover,.leadrow:hover,.datarow:hover,.kbrow:hover{background:var(--panel2)}
   .convrow:hover .arr{opacity:1;transform:translateX(0)}
-  .leadrow:hover{background:var(--panel2)}
-  .datarow:hover{background:var(--panel2)}
-  .kbrow:hover{background:var(--panel2)}
   .kbrow:hover .kbedit{border-color:var(--accent);color:var(--accent)}
-  .tkcard{transition:transform .12s ease,border-color .12s ease}
-  .tkcard:hover{border-color:var(--linelit);transform:translateY(-1px)}
-  .subtab{transition:all .12s ease;cursor:pointer}
+  .tkcard{border-radius:var(--r-card);transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+  .tkcard:hover{box-shadow:var(--shadow-pop);transform:translateY(-1px)}
+  .subtab{transition:all .12s ease;cursor:pointer;border-radius:var(--r-ctl)}
   .subtab:hover{color:var(--cream)}
+  .chip{border-radius:var(--r-pill)}
   .chip:hover{border-color:var(--accent);color:var(--accent)}
-  .cfgcard{transition:all .12s ease;cursor:pointer}
+  .cfgcard{border-radius:10px;transition:all .12s ease;cursor:pointer}
   .cfgcard:hover{border-color:var(--linelit)}
-  .bar{transition:transform .5s cubic-bezier(.16,1,.3,1)}
+  .bar{transition:transform .5s cubic-bezier(.16,1,.3,1);border-radius:99px}
   .bargrp:hover .bar{background:var(--accent) !important}
 
-  /* flow-canvas node (mockup ".node") + the existing views' ".node-card" */
-  .node{transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease;cursor:pointer}
-  .node:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:4px 4px 0 var(--linelit)}
-  .node-card{transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
-  .node-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:4px 4px 0 var(--linelit)}
+  /* flow-canvas */
+  .node{border-radius:10px;transition:transform .14s ease,box-shadow .14s ease;cursor:pointer}
+  .node:hover{transform:translateY(-2px);box-shadow:var(--shadow-pop)}
+  .node-card{border-radius:10px;transition:transform .15s ease,box-shadow .15s ease}
+  .node-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-pop)}
 
-  /* modal + toast (class names kept from prior layout for existing views) */
+  /* modal + toast */
   .modal-backdrop{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
-    padding:1rem;background:rgba(28,25,23,.42);animation:fadeIn .15s ease-out}
-  .modal-card{background:var(--panel);border:1px solid var(--linelit);box-shadow:8px 8px 0 var(--line);
+    padding:1rem;background:rgba(24,24,27,.4);animation:fadeIn .15s ease-out}
+  .modal-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 24px 64px rgba(24,24,27,.18),0 2px 8px rgba(24,24,27,.08);
     animation:popIn .18s cubic-bezier(.16,1,.3,1);transform-origin:center}
-  .toast{background:var(--panel);border:1px solid var(--linelit);color:var(--cream);box-shadow:4px 4px 0 var(--linelit);
+  .toast{background:var(--panel);border:1px solid var(--line);color:var(--cream);border-radius:10px;
+    box-shadow:var(--shadow-pop);
     animation:toastIn .25s cubic-bezier(.16,1,.3,1),toastOut .3s ease-in 2.4s forwards}
 
   /* app shell */
   .shell{min-height:100vh;display:grid;grid-template-columns:248px 1fr;background:var(--bg)}
   .sb{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
   .sb-nav{padding:14px 12px;display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
-  .sb-sec{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;padding:14px 10px 6px}
-  .live-pill{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line);padding:8px 13px}
+  .sb-sec{font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:14px 10px 6px;font-weight:600}
+  .live-pill{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--r-pill);padding:7px 14px}
 
   @media (max-width:767px){
     .shell{grid-template-columns:1fr}
@@ -204,7 +216,7 @@ const GLOBAL_STYLE = `
     .sb-nav{flex-direction:row;align-items:center;gap:4px;padding:8px 10px;overflow-y:visible;overflow-x:auto}
     .sb-sec{display:none}
     .sb-foot{display:none}
-    .navlink{border-left:none !important;white-space:nowrap;border-bottom:2px solid transparent}
+    .navlink{white-space:nowrap}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -248,10 +260,10 @@ const GLOBAL_SCRIPT = `
 
 function navItem(item: Item, active: boolean): string {
   const base =
-    "display:flex;align-items:center;gap:11px;padding:9px 10px;font-size:13px;";
+    "display:flex;align-items:center;gap:11px;padding:9px 11px;font-size:13px;";
   const style = active
-    ? base + "color:var(--cream);background:var(--accent-soft);border-left:2px solid var(--accent);font-weight:600"
-    : base + "color:var(--muted);border-left:2px solid transparent";
+    ? base + "color:var(--accent);background:var(--accent-soft);font-weight:600"
+    : base + "color:var(--muted)";
   const iconColor = active ? "var(--accent)" : "var(--dim)";
   return `<a href="${item.href}" class="navlink" style="${style}">
     <i data-lucide="${item.icon}" width="17" height="17" style="color:${iconColor}"></i> ${item.label}
@@ -262,10 +274,10 @@ function navItem(item: Item, active: boolean): string {
 // la página de upgrade en vez de a la vista real. Se ven, pero invitan a subir.
 function navItemLocked(item: Item): string {
   const base =
-    "display:flex;align-items:center;gap:11px;padding:9px 10px;font-size:13px;color:var(--dim);border-left:2px solid transparent";
+    "display:flex;align-items:center;gap:11px;padding:9px 11px;font-size:13px;color:var(--dim)";
   return `<a href="${UPGRADE_URL}" class="navlink" style="${base}" title="Disponible en Pro">
     <i data-lucide="lock" width="15" height="15" style="color:var(--dim)"></i> ${item.label}
-    <span style="margin-left:auto;font-size:8.5px;letter-spacing:.14em;color:var(--accent2);border:1px solid var(--line);padding:1px 5px">PRO</span>
+    <span style="margin-left:auto;font-size:9px;letter-spacing:.1em;font-weight:600;color:var(--accent2);background:rgba(180,83,9,.08);border-radius:var(--r-pill);padding:2px 8px">PRO</span>
   </a>`;
 }
 
@@ -295,19 +307,19 @@ function sidebar(activeTab: string, pro: boolean, niche: NichePack | null, disab
   return `<aside class="sb">
     <div class="sb-brand" style="padding:20px 18px 16px;border-bottom:1px solid var(--line)">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:34px;height:34px;flex:none;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;background:var(--accent-soft);box-shadow:3px 3px 0 var(--linelit)">
-          <i data-lucide="terminal" width="18" height="18" style="color:var(--accent)"></i>
+        <div style="width:34px;height:34px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent)">
+          <i data-lucide="zap" width="18" height="18" style="color:#fff"></i>
         </div>
-        <div style="line-height:1.05">
-          <div style="font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:-.02em">Forja</div>
-          <div style="font-size:9.5px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase">Panel · ${pro ? "Pro" : "Free"}</div>
+        <div style="line-height:1.15">
+          <div style="font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:-.01em">Forja</div>
+          <div style="font-size:10.5px;color:var(--dim)">Panel · ${pro ? "Pro" : "Free"}</div>
         </div>
       </div>
     </div>
     <nav class="sb-nav">${sections}</nav>
     <div class="sb-foot" style="padding:14px;border-top:1px solid var(--line)">
-      <div style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line)">
-        <div style="width:30px;height:30px;flex:none;background:var(--raise);border:1px solid var(--linelit);display:flex;align-items:center;justify-content:center;color:var(--accent)">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)">
+        <div style="width:30px;height:30px;flex:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ok)">
           <i data-lucide="bot" width="16" height="16"></i>
         </div>
         <div style="line-height:1.2;overflow:hidden">
@@ -346,15 +358,15 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   <div class="shell">
     ${sidebar(opts.activeTab, pro, niche, disabledTabs)}
     <div style="display:flex;flex-direction:column;min-width:0">
-      <header style="position:sticky;top:0;z-index:30;background:rgba(250,250,249,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;gap:20px">
+      <header style="position:sticky;top:0;z-index:30;background:rgba(250,250,250,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;align-items:center;gap:20px">
         <div style="min-width:0">
-          <div style="font-size:10px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase">${section.label} / ${item.label}</div>
-          <h1 style="font-family:'Space Grotesk';font-weight:700;font-size:22px;margin:2px 0 0;letter-spacing:-.02em">${item.label}</h1>
+          <div style="font-size:11px;color:var(--dim)">${section.label} / ${item.label}</div>
+          <h1 style="font-family:'Space Grotesk';font-weight:600;font-size:20px;margin:1px 0 0;letter-spacing:-.01em">${item.label}</h1>
         </div>
         <div id="proj-switcher" style="margin-left:auto"></div>
         <div class="live-pill">
-          <span style="width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 1.8s ease-in-out infinite,ring 2s infinite"></span>
-          <span style="font-size:11px;font-weight:600;letter-spacing:.04em">BOT EN LÍNEA</span>
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.8s ease-in-out infinite,ring 2s infinite"></span>
+          <span style="font-size:11px;font-weight:600;letter-spacing:.06em">BOT EN LÍNEA</span>
         </div>
       </header>
       <main style="padding:22px 26px;min-width:0">${opts.body}</main>
@@ -378,7 +390,7 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
     // El parser de HTML las decodifica antes de que corran el onchange y el CSS.
     el.innerHTML = '<select onchange="if(this.value.indexOf(&#39;http&#39;)===0)window.location=this.value" ' +
       'style="background:var(--panel);color:var(--fg,var(--cream));border:1px solid var(--line);border-radius:8px;' +
-      'padding:6px 10px;font-family:&#39;JetBrains Mono&#39;,monospace;font-size:11px;letter-spacing:.04em;cursor:pointer" ' +
+      'padding:6px 10px;font-size:12px;cursor:pointer" ' +
       'title="Cambiar de proyecto">' + opts + '</select>';
   }).catch(function(){});
   </script>
@@ -400,7 +412,7 @@ export function renderUpgrade(env: Env, feature?: string): string {
     ["megaphone", "Campañas", "Manda difusiones y seguimientos por WhatsApp a tus segmentos."],
   ]
     .map(
-      ([icon, title, desc]) => `<div style="display:flex;gap:12px;padding:14px;border:1px solid var(--line);background:var(--panel)">
+      ([icon, title, desc]) => `<div style="display:flex;gap:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel)">
         <i data-lucide="${icon}" width="20" height="20" style="color:var(--accent);flex:none;margin-top:2px"></i>
         <div><div style="font-family:'Space Grotesk';font-weight:600;font-size:14px;margin-bottom:3px">${title}</div>
         <div style="font-size:12.5px;color:var(--muted);line-height:1.5">${desc}</div></div>
@@ -410,7 +422,7 @@ export function renderUpgrade(env: Env, feature?: string): string {
 
   const body = `
     <div class="card" style="max-width:720px">
-      <div style="border:1px solid var(--linelit);background:var(--panel);box-shadow:6px 6px 0 var(--linelit);padding:28px">
+      <div style="border:1px solid var(--linelit);background:var(--panel);padding:28px">
         <div style="display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent);color:var(--accent2);font-size:10px;letter-spacing:.16em;padding:4px 10px;text-transform:uppercase">
           <i data-lucide="lock" width="13" height="13"></i> Función Pro
         </div>
@@ -423,7 +435,7 @@ export function renderUpgrade(env: Env, feature?: string): string {
         </p>
         <div style="display:grid;gap:10px;margin-bottom:22px">${perks}</div>
         <a href="https://horizontesia.com" target="_blank" rel="noopener" class="bigbtn"
-          style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:4px 4px 0 var(--linelit);padding:12px 20px;font-family:'Space Grotesk';font-weight:700;font-size:14px">
+          style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:12px 20px;font-family:'Space Grotesk';font-weight:700;font-size:14px">
           <i data-lucide="arrow-up-right" width="17" height="17"></i> Subir a Pro con la comunidad
         </a>
       </div>
@@ -442,9 +454,9 @@ export function loginPage(error?: string): string {
   ${GLOBAL_STYLE}
 </head>
 <body class="scanlines" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem">
-  <form method="POST" action="/admin/auth/request" style="background:var(--panel);border:1px solid var(--linelit);box-shadow:8px 8px 0 var(--linelit);padding:32px;max-width:360px;width:100%">
+  <form method="POST" action="/admin/auth/request" style="background:var(--panel);border:1px solid var(--linelit);padding:32px;max-width:360px;width:100%">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-      <div style="width:34px;height:34px;flex:none;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;background:var(--accent-soft);box-shadow:3px 3px 0 var(--linelit)">
+      <div style="width:34px;height:34px;flex:none;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;background:var(--accent-soft);">
         <i data-lucide="terminal" width="18" height="18" style="color:var(--accent)"></i>
       </div>
       <div>
@@ -456,7 +468,7 @@ export function loginPage(error?: string): string {
     <input name="email" type="email" required placeholder="tu@email.com"
       style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 12px;font-size:13px;outline:none;margin-bottom:14px">
     <button class="bigbtn" type="submit"
-      style="width:100%;background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:4px 4px 0 var(--linelit);padding:11px;font-family:'Space Grotesk';font-weight:700;font-size:13px;cursor:pointer">
+      style="width:100%;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:11px;font-family:'Space Grotesk';font-weight:700;font-size:13px;cursor:pointer">
       Mandar link
     </button>
   </form>
