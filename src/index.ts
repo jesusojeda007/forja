@@ -17,12 +17,17 @@ import { detectKind } from "./learn/fieldPath";
 import { saveCapture, isLearnMode } from "./learn/mapping";
 import { tokensMatch, manychatWebhookAllowed } from "./http-auth";
 import { apiApp } from "./api";
+import { servePaymentQr } from "./payments/qr-storage";
 
 export { SupportAgent } from "./agent";
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/health", (c) => c.text("ok", 200));
+
+// QR de pago del negocio, público: WhatsApp/Meta necesita fetchear la URL para
+// mostrar la imagen al cliente (por eso NO va bajo /admin). Sin QR subido, 404.
+app.get("/qr", (c) => servePaymentQr(c.env));
 
 // Parse the provider payload via the channel adapter, derive the per-user DO id
 // (channel + ':' + channelUserId), and forward the normalized message to the

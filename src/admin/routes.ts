@@ -44,6 +44,7 @@ import { renderLeads, exportLeadsCsv } from "./views/leads";
 import { renderTickets } from "./views/tickets";
 import { renderConfig } from "./views/config";
 import { renderClientes, renderCliente } from "./views/clientes";
+import { savePaymentQr } from "../payments/qr-storage";
 import { renderConexiones } from "./views/conexiones";
 import { renderCampanas } from "./views/campanas";
 import { sendCampaign, createHandoffTemplate, contentApprovalStatus } from "../campaigns";
@@ -435,7 +436,23 @@ adminApp.post("/campanas/send", async (c) => {
 adminApp.get("/config", async (c) => {
   const settings = await new SettingsRepo(new Db(c.env.DB)).all();
   const saved = c.req.query("saved") === "1";
-  return c.html(renderConfig(c.env, settings, saved, c.req.query("llmtest")));
+  return c.html(renderConfig(c.env, settings, saved, c.req.query("llmtest"), c.req.query("err")));
+});
+
+// Subida del QR de pago desde el panel: guarda en R2 y deja paymentQrUrl
+// apuntando a /qr?v=... automáticamente. El dueño no toca URLs.
+adminApp.post("/config/qr-upload", async (c) => {
+  const back = "/admin/config";
+  try {
+    const body = await c.req.parseBody();
+    const file = body["qr"];
+    if (!(file instanceof File)) throw new Error("No recibí ningún archivo.");
+    await savePaymentQr(c.env, file);
+    return c.redirect(`${back}?saved=1`);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "No pude subir la imagen.";
+    return c.redirect(`${back}?err=${encodeURIComponent(msg)}`);
+  }
 });
 
 // Prueba de la config BYO-LLM guardada: un generateText mínimo con el modelo

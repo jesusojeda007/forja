@@ -40,6 +40,7 @@ export async function createTestMiniflare() {
   const mf = new Miniflare({
     modules: [{ type: "ESModule", path: "index.js", contents: INLINE_WORKER }],
     d1Databases: ["DB"],
+    r2Buckets: ["CATALOG"],
     durableObjects: { AGENT: "SupportAgent" },
     compatibilityDate: "2026-05-01",
     compatibilityFlags: ["nodejs_compat"],

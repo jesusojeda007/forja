@@ -177,6 +177,7 @@ export function renderConfig(
   settings: Record<string, string>,
   saved = false,
   llmTest?: string,
+  err?: string,
 ): string {
   const cardGroups = CONTROL_LIST.map((c) => renderCardGroup(c, settings)).join("");
 
@@ -193,6 +194,7 @@ export function renderConfig(
   const body = `
     <form method="POST" action="/admin/config" style="display:flex;flex-direction:column;gap:28px">
       ${savedBanner}
+      ${err ? `<div style="border:1px solid #f87171;background:rgba(248,113,113,.08);color:#f87171;padding:11px 16px;font-size:12.5px;margin-bottom:14px">${err}</div>` : ""}
 
       <div style="display:flex;flex-direction:column;gap:2px">
         <h2 class="font-display font-semibold text-[15px] text-cream">Panel de control de ${esc(env.BUSINESS_NAME)}</h2>
@@ -249,12 +251,33 @@ export function renderConfig(
           placeholder: "queja, reembolso, hablar con alguien",
         })}
 
+        <div style="border:1px solid var(--line);padding:14px 16px;margin-bottom:10px">
+          <div style="font-size:13px;color:var(--cream);font-weight:600;margin-bottom:4px">QR de pago</div>
+          <div class="text-muted" style="font-size:12px;line-height:1.5;margin-bottom:10px">
+            Sube la foto de tu QR (el de tu banco o wallet). Cuando un cliente quiera pagar, el bot se la manda por el chat. Debe ser PNG, JPG o WEBP (máx 2 MB).
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            ${settings[SETTING_KEYS.paymentQrUrl]
+              ? `<img src="${settings[SETTING_KEYS.paymentQrUrl]}" alt="QR actual" width="96" height="96"
+                   style="border:1px solid var(--line);object-fit:contain;background:#fff;padding:4px">`
+              : `<div class="text-dim" style="font-size:12px;width:96px;height:96px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line)">sin QR</div>`}
+            <form method="POST" action="/admin/config/qr-upload" enctype="multipart/form-data"
+                  style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <input type="file" name="qr" accept="image/png,image/jpeg,image/webp" required
+                     style="font-size:12px;color:var(--muted);max-width:260px">
+              <button type="submit" class="ghostbtn" style="background:var(--accent);border:1px solid var(--accent);color:#1a1206;padding:9px 16px;font-size:12.5px;cursor:pointer">
+                Subir QR
+              </button>
+            </form>
+          </div>
+        </div>
+
         ${renderTextField({
           name: SETTING_KEYS.paymentQrUrl,
-          label: "URL del QR de pago",
-          help: "Imagen pública de tu QR (el de tu banco o wallet). Cuando un cliente quiera pagar, el bot se la manda por el chat. Déjalo vacío si no cobras por QR.",
+          label: "URL del QR (opcional, avanzado)",
+          help: "Normalmente no lo necesitas: al subir el QR de arriba, esta URL se llena sola. Edítala solo si hospedas la imagen en otro lado.",
           value: settings[SETTING_KEYS.paymentQrUrl] ?? "",
-          placeholder: "https://tu-bot.workers.dev/qr.png",
+          placeholder: "https://tu-bot.workers.dev/qr?v=...",
         })}
 
         ${renderTextArea({

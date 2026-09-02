@@ -302,7 +302,7 @@ DISABLED_TABS = "tickets,campanas"
 
 Si el miembro cobra con **QR interoperable** (su QR bancario o wallet: BCP, Mercantil, BNB, Simple, Mach…), el bot puede entregar el QR en el chat cuando el cliente decide comprar, y **confirmar la venta sola** cuando el banco avisa el depósito por correo:
 
-1. **QR del negocio:** pídele la imagen de su QR y sírvela pública (ej. súbelo al bucket `CATALOG` de R2 con `wrangler r2 object put` o a su hosting) y pega la URL en **Panel → Configuración → URL del QR de pago**. En el mismo panel escribe las **Instrucciones de pago** (cuenta, envíos, etc.). Sin QR configurado el bot simplemente no ofrece cobrar por QR.
+1. **QR del negocio:** pídele la foto de su QR (el de su banco o wallet) y súbela en **Panel → Configuración → QR de pago → Subir QR**. Forja la guarda en su propio R2 y la sirve pública automáticamente en `/qr` — no hay que hospedar nada afuera. En el mismo panel escribe las **Instrucciones de pago** (cuenta, envíos, etc.). Sin QR configurado el bot simplemente no ofrece cobrar por QR. (Avanzado: el campo "URL del QR" permite apuntar a una imagen hospedada en otro lado.)
 2. **Confirmación automática (opcional, en el Cloudflare del miembro):** en el dashboard de Cloudflare, crea un **Email Routing** cuyo destino sea este Worker ("Send to a Worker") y haz que su banco envíe las notificaciones de depósito ahí (o crea una regla que las reenvíe). Forja matchea el monto del correo contra los pagos pendientes de las últimas 48h: **match único → marca la venta sola** y avisa por Telegram; ambiguo o sin match → avisa al dueño para que él decida. Nunca confirma por el "ya pagué" del cliente: la fuente de verdad es el correo del banco.
 
 ### Paso 2.2d — Catálogo por URL (si el negocio ya tiene tienda en línea)
