@@ -27,7 +27,7 @@ function pipelineBadge(status: string | null, env?: Env): string {
   const niche = env ? getNiche(env) : null;
   const label = niche?.statusLabels[status as keyof typeof niche.statusLabels] ?? status;
   const color =
-    status === "sold" ? "var(--ok, #4ade80)" : status === "lost" ? "var(--dim)" : "var(--accent)";
+    status === "sold" ? "var(--ok, #15803d)" : status === "lost" ? "var(--dim)" : "var(--accent)";
   return `<span style="font-size:11px;color:${color};border:1px solid var(--line);padding:3px 8px">${esc(label)}</span>`;
 }
 
@@ -57,7 +57,7 @@ export async function renderClientes(env: Env, opts: { q?: string; f?: string })
     .map((c: ClientRow) => {
       const pending =
         c.pending_count > 0
-          ? `<span style="font-size:11px;color:var(--warn, #fbbf24)">⏳ ${c.pending_count} pago${c.pending_count > 1 ? "s" : ""} sin confirmar (${fmtBs(c.pending_sum)})</span>`
+          ? `<span style="font-size:11px;color:var(--warn, #b45309)">⏳ ${c.pending_count} pago${c.pending_count > 1 ? "s" : ""} sin confirmar (${fmtBs(c.pending_sum)})</span>`
           : `<span class="text-dim" style="font-size:11px">sin pagos pendientes</span>`;
       return `<a href="/admin/clientes/${encodeURIComponent(c.channel_user_id)}" class="bg-panel"
         style="display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);padding:16px 18px;text-decoration:none;transition:border-color .12s ease"

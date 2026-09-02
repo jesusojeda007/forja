@@ -128,9 +128,9 @@ function renderLlmSection(settings: Record<string, string>, llmTest?: string): s
 
   let testBanner = "";
   if (llmTest?.startsWith("ok:")) {
-    testBanner = `<div style="border:1px solid var(--ok);background:rgba(127,183,126,.1);color:var(--ok);padding:9px 12px;font-size:12px;font-weight:600">✓ Conexión exitosa — respondió ${esc(llmTest.slice(3))}</div>`;
+    testBanner = `<div style="border:1px solid var(--ok);background:rgba(21,128,61,.08);color:var(--ok);padding:9px 12px;font-size:12px;font-weight:600">✓ Conexión exitosa — respondió ${esc(llmTest.slice(3))}</div>`;
   } else if (llmTest?.startsWith("err:")) {
-    testBanner = `<div style="border:1px solid var(--danger,#e0654d);background:rgba(224,101,77,.1);color:var(--danger,#e0654d);padding:9px 12px;font-size:12px;font-weight:600">✕ Falló la prueba: ${esc(llmTest.slice(4, 200))}</div>`;
+    testBanner = `<div style="border:1px solid var(--bad);background:rgba(185,28,28,.06);color:var(--bad);padding:9px 12px;font-size:12px;font-weight:600">✕ Falló la prueba: ${esc(llmTest.slice(4, 200))}</div>`;
   }
 
   return `
@@ -188,13 +188,13 @@ export function renderConfig(
   const hasPromptOverride = (settings[SETTING_KEYS.systemPromptOverride] ?? "").trim() !== "";
 
   const savedBanner = saved
-    ? `<div style="border:1px solid var(--ok);background:rgba(127,183,126,.1);color:var(--ok);padding:10px 14px;font-size:12.5px;font-weight:600">Guardado ✓</div>`
+    ? `<div style="border:1px solid var(--ok);background:rgba(21,128,61,.08);color:var(--ok);padding:10px 14px;font-size:12.5px;font-weight:600">Guardado ✓</div>`
     : "";
 
   const body = `
     <form method="POST" action="/admin/config" style="display:flex;flex-direction:column;gap:28px">
       ${savedBanner}
-      ${err ? `<div style="border:1px solid #f87171;background:rgba(248,113,113,.08);color:#f87171;padding:11px 16px;font-size:12.5px;margin-bottom:14px">${err}</div>` : ""}
+      ${err ? `<div style="border:1px solid var(--bad);background:rgba(185,28,28,.06);color:var(--bad);padding:11px 16px;font-size:12.5px;margin-bottom:14px">${err}</div>` : ""}
 
       <div style="display:flex;flex-direction:column;gap:2px">
         <h2 class="font-display font-semibold text-[15px] text-cream">Panel de control de ${esc(env.BUSINESS_NAME)}</h2>
@@ -265,7 +265,7 @@ export function renderConfig(
                   style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
               <input type="file" name="qr" accept="image/png,image/jpeg,image/webp" required
                      style="font-size:12px;color:var(--muted);max-width:260px">
-              <button type="submit" class="ghostbtn" style="background:var(--accent);border:1px solid var(--accent);color:#1a1206;padding:9px 16px;font-size:12.5px;cursor:pointer">
+              <button type="submit" class="ghostbtn" style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:9px 16px;font-size:12.5px;cursor:pointer">
                 Subir QR
               </button>
             </form>
@@ -299,7 +299,7 @@ export function renderConfig(
       </div>
 
       <button type="submit" class="bigbtn font-display font-bold text-[13px] cursor-pointer"
-              style="width:fit-content;background:var(--accent);border:1px solid var(--accent);color:#1a1206;box-shadow:4px 4px 0 var(--linelit);padding:13px 24px;display:flex;align-items:center;gap:9px">
+              style="width:fit-content;background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:4px 4px 0 var(--linelit);padding:13px 24px;display:flex;align-items:center;gap:9px">
         <i data-lucide="check" width="16" height="16"></i> Guardar cambios
       </button>
     </form>`;

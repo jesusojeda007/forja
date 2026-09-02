@@ -1,10 +1,15 @@
 # Forja Admin — Design System
 
-Retro-terminal dark theme for the bot admin dashboard. This is the **contract**
+Light professional theme for the bot admin dashboard. This is the **contract**
 for every view under `src/admin/views/`. The shell (`layout.ts`) already loads
-the fonts, Tailwind config, tokens, lucide, htmx, the scanline overlay and all
-the component classes below. Views only render the **body** — write it to match
-this system.
+the fonts, Tailwind config, tokens, lucide, htmx and all the component classes
+below. Views only render the **body** — write it to match this system.
+
+Design read: warm-neutral surfaces + ONE burnt-orange accent (the Forja brand),
+sharp corners and hard offset shadows kept from the original brutalist system.
+Text colors pass WCAG AA on their surfaces. The old dark retro-terminal theme
+was retired; token NAMES are unchanged (views reference `text-cream`, `bg-panel`,
+etc.), only their values define the theme.
 
 Stack reminder: no build step. Views are TS template strings → HTML, styled with
 **Tailwind CDN utilities** (mapped to the tokens below) and/or inline
@@ -19,25 +24,29 @@ color** (for `class="…"`). Use whichever fits; they resolve to the same hex.
 
 | CSS var | Tailwind | Hex | Use |
 |---|---|---|---|
-| `--bg` | `bg-bg` | `#141009` | page background (already on `<body>`) |
-| `--panel` | `bg-panel` | `#1d1710` | card / panel surface |
-| `--panel2` | `bg-panel2` | `#241c13` | nested surface, row hover, inputs-on-panel |
-| `--raise` | `bg-raise` | `#2b2116` | raised chips / avatars |
-| `--line` | `border-line` | `#352a1d` | default border / divider |
-| `--linelit` | `border-linelit` | `#4c3a26` | lit border, hard-shadow color |
-| `--accent` | `text-accent` `bg-accent` `border-accent` | `#f07a3f` | primary accent (orange) |
-| `--accent-soft` | `bg-accent-soft` | `rgba(240,122,63,.14)` | accent wash / active bg |
-| `--accent-2` | `text-accent2` | `#f5a623` | secondary accent (amber): AI/insights |
-| `--cream` | `text-cream` | `#efe7da` | primary text |
-| `--muted` | `text-muted` | `#a1907b` | secondary text |
-| `--dim` | `text-dim` | `#726555` | tertiary text, labels, captions |
-| `--ok` | `text-ok` `border-ok` | `#7fb77e` | success / green (resolved, online) |
-| `--info` | `text-info` `border-info` | `#7aa2d6` | info / blue (WhatsApp, escalated) |
-| `--bad` | `text-bad` `border-bad` | `#d97a6a` | danger / red (angry, handoff, errors) |
-| `--violet` | `text-violet` | `#b99bd6` | model/memory accents in the flow canvas |
+| `--bg` | `bg-bg` | `#fafaf9` | page background (already on `<body>`) |
+| `--panel` | `bg-panel` | `#fefefe` | card / panel surface |
+| `--panel2` | `bg-panel2` | `#f4f3f1` | nested surface, row hover, inputs-on-panel |
+| `--raise` | `bg-raise` | `#eceae6` | raised chips / avatars |
+| `--line` | `border-line` | `#e5e3df` | default border / divider |
+| `--linelit` | `border-linelit` | `#cfccc6` | lit border, hard-shadow color |
+| `--accent` | `text-accent` `bg-accent` `border-accent` | `#c2410c` | primary accent (burnt orange, AA on light) |
+| `--accent-soft` | `bg-accent-soft` | `rgba(194,65,12,.10)` | accent wash / active bg |
+| `--accent-2` | `text-accent2` | `#b45309` | secondary accent (amber): AI/insights |
+| `--cream` | `text-cream` | `#1c1917` | primary text (near-black; name kept for compat) |
+| `--muted` | `text-muted` | `#57534e` | secondary text |
+| `--dim` | `text-dim` | `#79716b` | tertiary text, labels, captions |
+| `--ok` | `text-ok` `border-ok` | `#15803d` | success / green (resolved, online) |
+| `--info` | `text-info` `border-info` | `#2563eb` | info / blue (WhatsApp, escalated) |
+| `--bad` | `text-bad` `border-bad` | `#b91c1c` | danger / red (angry, handoff, errors) |
+| `--violet` | `text-violet` | `#7c3aed` | model/memory accents in the flow canvas |
 
-Buttons on `--accent` use text color `#1a1206` (near-black on orange) — there is
-no token for it; write the hex.
+Buttons on `--accent` use white text (`#ffffff`, 4.8:1 on the burnt orange) —
+there is no token for it; write the hex.
+
+Success/warn washes use `rgba(21,128,61,α)` (the `--ok` green) and
+`rgba(194,65,12,α)` (the accent). Don't reintroduce the old dark-theme hexes
+(`#f07a3f`, `#7fb77e`, `#1a1206`, `rgba(127,183,126,…)`, …).
 
 Legacy aliases (`--border`, `--border-lit`, `--green`, `--blue`, `--red`) are
 still defined so pasted mockup snippets don't break, but **prefer the names in
@@ -198,9 +207,9 @@ bar-chart-3 · `costs` receipt.
 
 ## 6. PROHIBIDO
 
-- ❌ No light-theme colors: no `bg-white`, `bg-stone-50`, `text-stone-*`,
-  `bg-cyan-*`, `text-cyan-*`, `shadow-sm/md`, `rounded-2xl`, or any pale
-  surface. This theme is dark + square (hard corners, hard shadows).
+- ❌ No dark-theme colors: no dark surfaces (`bg-zinc-900`, `bg-stone-950`, …),
+  no pure `#000`/`#fff` as surfaces, no neon glows or glow `text-shadow`s.
+  This theme is light + square (hard corners, hard offset shadows).
 - ❌ Don't invent new colors — use the tokens in §1 only.
 - ❌ Don't touch htmx attributes (`hx-*`), element `id`s, route paths, or form
   field `name`s. Restyle markup, don't rewire it.

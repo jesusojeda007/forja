@@ -1,9 +1,11 @@
 // Dashboard shell: a fixed 248px sidebar (grouped navigation) + a live-status
-// topbar, wrapping each tab's server-rendered body. Retro-terminal dark theme
-// ("Forja admin"): Space Grotesk + JetBrains Mono, brutalist buttons, scan
-// lines. Design tokens are exposed both as CSS custom properties (for inline
-// styles) and mapped to Tailwind color names (for utility classes) — see
-// docs/design-system.md, the contract every view follows.
+// topbar, wrapping each tab's server-rendered body. Light professional theme
+// ("Forja admin"): Space Grotesk + JetBrains Mono, brutalist hard shadows on
+// warm-neutral surfaces, single burnt-orange accent. Design tokens are exposed
+// both as CSS custom properties (for inline styles) and mapped to Tailwind
+// color names (for utility classes) — see docs/design-system.md, the contract
+// every view follows. Token NAMES are load-bearing: views reference them, only
+// values define the theme.
 //
 // The layout() API is unchanged: views keep their own activeTab id; the group,
 // breadcrumb and page title are derived here.
@@ -76,21 +78,21 @@ const HEAD_ASSETS = `
       theme: {
         extend: {
           colors: {
-            bg: "#141009",
-            panel: "#1d1710",
-            panel2: "#241c13",
-            raise: "#2b2116",
-            line: "#352a1d",
-            linelit: "#4c3a26",
-            accent: { DEFAULT: "#f07a3f", soft: "rgba(240,122,63,.14)" },
-            accent2: "#f5a623",
-            cream: "#efe7da",
-            muted: "#a1907b",
-            dim: "#726555",
-            ok: "#7fb77e",
-            info: "#7aa2d6",
-            bad: "#d97a6a",
-            violet: "#b99bd6",
+            bg: "#fafaf9",
+            panel: "#fefefe",
+            panel2: "#f4f3f1",
+            raise: "#eceae6",
+            line: "#e5e3df",
+            linelit: "#cfccc6",
+            accent: { DEFAULT: "#c2410c", soft: "rgba(194,65,12,.10)" },
+            accent2: "#b45309",
+            cream: "#1c1917",
+            muted: "#57534e",
+            dim: "#79716b",
+            ok: "#15803d",
+            info: "#2563eb",
+            bad: "#b91c1c",
+            violet: "#7c3aed",
           },
           fontFamily: {
             display: ["'Space Grotesk'", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -109,13 +111,14 @@ const HEAD_ASSETS = `
 const GLOBAL_STYLE = `
 <style>
   :root{
-    --bg:#141009; --panel:#1d1710; --panel2:#241c13; --raise:#2b2116;
-    --line:#352a1d; --linelit:#4c3a26;
-    --accent:#f07a3f; --accent-2:#f5a623; --accent-soft:rgba(240,122,63,.14);
-    --cream:#efe7da; --muted:#a1907b; --dim:#726555;
-    --ok:#7fb77e; --info:#7aa2d6; --bad:#d97a6a; --violet:#b99bd6;
+    color-scheme:light;
+    --bg:#fafaf9; --panel:#fefefe; --panel2:#f4f3f1; --raise:#eceae6;
+    --line:#e5e3df; --linelit:#cfccc6;
+    --accent:#c2410c; --accent-2:#b45309; --accent-soft:rgba(194,65,12,.10);
+    --cream:#1c1917; --muted:#57534e; --dim:#79716b;
+    --ok:#15803d; --info:#2563eb; --bad:#b91c1c; --violet:#7c3aed;
     /* legacy aliases kept so mockup-derived snippets keep working */
-    --border:#352a1d; --border-lit:#4c3a26; --green:#7fb77e; --blue:#7aa2d6; --red:#d97a6a;
+    --border:#e5e3df; --border-lit:#cfccc6; --green:#15803d; --blue:#2563eb; --red:#b91c1c;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--cream);
@@ -133,17 +136,16 @@ const GLOBAL_STYLE = `
   /* keyframes */
   @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.82)}}
-  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(127,183,126,.5)}100%{box-shadow:0 0 0 8px rgba(127,183,126,0)}}
+  @keyframes ring{0%{box-shadow:0 0 0 0 rgba(21,128,61,.45)}100%{box-shadow:0 0 0 8px rgba(21,128,61,0)}}
   @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes popIn{from{opacity:0;transform:scale(.94) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
   @keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
   @keyframes toastOut{to{opacity:0;transform:translateY(8px);visibility:hidden}}
 
-  /* scanline overlay (applied to <body>) */
-  .scanlines::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:200;
-    background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.12) 3px,rgba(0,0,0,0) 4px);
-    opacity:.5;mix-blend-mode:multiply}
+  /* Overlay del tema anterior (terminal): en claro no aporta y ensuciaba el
+     blanco. La clase sigue en <body> por compatibilidad, pero ya no dibuja. */
+  .scanlines::after{content:none}
 
   /* sidebar nav */
   .navlink:hover{background:var(--panel2);color:var(--cream)}
@@ -155,7 +157,7 @@ const GLOBAL_STYLE = `
   .bigbtn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--linelit)}
   .bigbtn:active{transform:translate(0,0);box-shadow:2px 2px 0 var(--linelit)}
   .ghostbtn:hover{border-color:var(--accent);color:var(--cream);background:var(--accent-soft)}
-  .glow{text-shadow:0 0 22px var(--accent-soft),0 0 40px rgba(240,122,63,.1)}
+  .glow{text-shadow:0 1px 0 rgba(255,255,255,.6)}
 
   /* list / table rows + interactive bits reused across views */
   .convrow:hover{background:var(--panel2)}
@@ -182,8 +184,8 @@ const GLOBAL_STYLE = `
 
   /* modal + toast (class names kept from prior layout for existing views) */
   .modal-backdrop{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
-    padding:1rem;background:rgba(10,8,4,.6);animation:fadeIn .15s ease-out}
-  .modal-card{background:var(--panel);border:1px solid var(--linelit);box-shadow:8px 8px 0 rgba(0,0,0,.4);
+    padding:1rem;background:rgba(28,25,23,.42);animation:fadeIn .15s ease-out}
+  .modal-card{background:var(--panel);border:1px solid var(--linelit);box-shadow:8px 8px 0 var(--line);
     animation:popIn .18s cubic-bezier(.16,1,.3,1);transform-origin:center}
   .toast{background:var(--panel);border:1px solid var(--linelit);color:var(--cream);box-shadow:4px 4px 0 var(--linelit);
     animation:toastIn .25s cubic-bezier(.16,1,.3,1),toastOut .3s ease-in 2.4s forwards}
@@ -344,7 +346,7 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   <div class="shell">
     ${sidebar(opts.activeTab, pro, niche, disabledTabs)}
     <div style="display:flex;flex-direction:column;min-width:0">
-      <header style="position:sticky;top:0;z-index:30;background:rgba(20,16,9,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;gap:20px">
+      <header style="position:sticky;top:0;z-index:30;background:rgba(250,250,249,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;gap:20px">
         <div style="min-width:0">
           <div style="font-size:10px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase">${section.label} / ${item.label}</div>
           <h1 style="font-family:'Space Grotesk';font-weight:700;font-size:22px;margin:2px 0 0;letter-spacing:-.02em">${item.label}</h1>
@@ -375,7 +377,7 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
     // y cerraban la cadena JS de golpe (SyntaxError en cada carga del panel).
     // El parser de HTML las decodifica antes de que corran el onchange y el CSS.
     el.innerHTML = '<select onchange="if(this.value.indexOf(&#39;http&#39;)===0)window.location=this.value" ' +
-      'style="background:rgba(20,16,9,.9);color:var(--fg,#e8e0cf);border:1px solid var(--line);border-radius:8px;' +
+      'style="background:var(--panel);color:var(--fg,var(--cream));border:1px solid var(--line);border-radius:8px;' +
       'padding:6px 10px;font-family:&#39;JetBrains Mono&#39;,monospace;font-size:11px;letter-spacing:.04em;cursor:pointer" ' +
       'title="Cambiar de proyecto">' + opts + '</select>';
   }).catch(function(){});
@@ -421,7 +423,7 @@ export function renderUpgrade(env: Env, feature?: string): string {
         </p>
         <div style="display:grid;gap:10px;margin-bottom:22px">${perks}</div>
         <a href="https://horizontesia.com" target="_blank" rel="noopener" class="bigbtn"
-          style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border:1px solid var(--accent);color:#1a1206;box-shadow:4px 4px 0 var(--linelit);padding:12px 20px;font-family:'Space Grotesk';font-weight:700;font-size:14px">
+          style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:4px 4px 0 var(--linelit);padding:12px 20px;font-family:'Space Grotesk';font-weight:700;font-size:14px">
           <i data-lucide="arrow-up-right" width="17" height="17"></i> Subir a Pro con la comunidad
         </a>
       </div>
@@ -454,7 +456,7 @@ export function loginPage(error?: string): string {
     <input name="email" type="email" required placeholder="tu@email.com"
       style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 12px;font-size:13px;outline:none;margin-bottom:14px">
     <button class="bigbtn" type="submit"
-      style="width:100%;background:var(--accent);border:1px solid var(--accent);color:#1a1206;box-shadow:4px 4px 0 var(--linelit);padding:11px;font-family:'Space Grotesk';font-weight:700;font-size:13px;cursor:pointer">
+      style="width:100%;background:var(--accent);border:1px solid var(--accent);color:#ffffff;box-shadow:4px 4px 0 var(--linelit);padding:11px;font-family:'Space Grotesk';font-weight:700;font-size:13px;cursor:pointer">
       Mandar link
     </button>
   </form>
