@@ -43,6 +43,7 @@ import { applySuggestion, dismissSuggestion } from "../flywheel/apply";
 import { renderLeads, exportLeadsCsv } from "./views/leads";
 import { renderTickets } from "./views/tickets";
 import { renderConfig } from "./views/config";
+import { renderClientes, renderCliente } from "./views/clientes";
 import { renderConexiones } from "./views/conexiones";
 import { renderCampanas } from "./views/campanas";
 import { sendCampaign, createHandoffTemplate, contentApprovalStatus } from "../campaigns";
@@ -359,6 +360,14 @@ adminApp.post("/agente/tools/:name/toggle", async (c) => {
   c.header("HX-Trigger", "canvas-refresh");
   return c.html((await renderNodeModal(c.env, `tool:${name}`, true)) + toastOob("✓ Guardado"));
 });
+
+adminApp.get("/clientes", async (c) =>
+  c.html(await renderClientes(c.env, { q: c.req.query("q") ?? "", f: c.req.query("f") ?? "" })),
+);
+
+adminApp.get("/clientes/:cu", async (c) =>
+  c.html(await renderCliente(c.env, decodeURIComponent(c.req.param("cu")))),
+);
 
 adminApp.get("/leads", async (c) => c.html(await renderLeads(c.env)));
 

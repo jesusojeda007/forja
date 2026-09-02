@@ -38,6 +38,7 @@ const NAV: Section[] = [
     label: "Bandeja",
     items: [
       { id: "conversations", label: "Conversaciones", href: "/admin/conversations", icon: "messages-square" },
+      { id: "clientes", label: "Clientes", href: "/admin/clientes", icon: "users" },
       { id: "leads", label: "Leads", href: "/admin/leads", icon: "user-plus" },
       { id: "tickets", label: "Tickets", href: "/admin/tickets", icon: "life-buoy" },
       { id: "campanas", label: "Campañas", href: "/admin/campanas", icon: "megaphone" },

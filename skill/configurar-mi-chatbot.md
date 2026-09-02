@@ -632,7 +632,7 @@ Con el bot YA vivo y probado (no antes), remata así — sin presión, ya probó
 - `DISABLED_TABS` — opcional. Oculta pestañas del panel `/admin` que no aplican a este negocio. Ids separados por coma (ver lista abajo). Ejemplo para una tienda que no hace campañas: `DISABLED_TABS = "campanas"`. Ausente = todas las pestañas visibles.
   - Si seteas `BOT_NICHE` (ej. `tienda`), el pack **ya oculta sus pestañas por defecto** (tienda oculta `tickets`); `DISABLED_TABS` se suma como ajuste fino del dueño, nunca re-activa las del pack.
 
-**Ids válidos para `DISABLED_TABS`** (pestañas del panel): `overview`, `conversations`, `leads`, `tickets`, `campanas`, `agente`, `kb`, `mejoras`, `conexiones`, `config`, `insights`, `stats`, `costs`.
+**Ids válidos para `DISABLED_TABS`** (pestañas del panel): `overview`, `conversations`, `clientes`, `leads`, `tickets`, `campanas`, `agente`, `kb`, `mejoras`, `conexiones`, `config`, `insights`, `stats`, `costs`.
 
 > ⚠️ `DISABLED_TABS` solo oculta las pestañas de la navegación; las rutas de `/admin` siguen existiendo. Es para enfocar el panel en lo que el negocio usa, no para restringir acceso.
 
