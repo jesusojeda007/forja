@@ -150,7 +150,7 @@ export async function renderCampanas(
         Si reintentas una campaña con el mismo nombre, a nadie le llega dos veces.
       </div>
 
-      <button type="submit" class="btn" style="margin-top:16px;border:1px solid var(--accent);background:rgba(180,83,9,.10);padding:10px 22px;font-weight:700;font-size:12px;letter-spacing:.08em;cursor:pointer">
+      <button type="submit" class="btn" style="margin-top:16px;border:1px solid var(--accent);background:rgba(15,118,110,.08);padding:10px 22px;font-weight:700;font-size:12px;letter-spacing:.08em;cursor:pointer">
         ⚡ ENVIAR CAMPAÑA
       </button>
       <span class="text-dim" style="font-size:11px;margin-left:10px">Puede tardar ~1 min con audiencias grandes.</span>

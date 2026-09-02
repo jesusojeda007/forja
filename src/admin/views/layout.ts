@@ -84,8 +84,8 @@ const HEAD_ASSETS = `
             raise: "#e9e9eb",
             line: "#e4e4e7",
             linelit: "#d4d4d8",
-            accent: { DEFAULT: "#c2410c", soft: "rgba(194,65,12,.08)" },
-            accent2: "#b45309",
+            accent: { DEFAULT: "#047857", soft: "rgba(4,120,87,.08)" },
+            accent2: "#0f766e",
             cream: "#18181b",
             muted: "#52525b",
             dim: "#71717a",
@@ -118,7 +118,7 @@ const GLOBAL_STYLE = `
     --shadow-pop:0 8px 24px rgba(24,24,27,.12);
     --bg:#fafafa; --panel:#fefefe; --panel2:#f4f4f5; --raise:#e9e9eb;
     --line:#e4e4e7; --linelit:#d4d4d8;
-    --accent:#c2410c; --accent-2:#b45309; --accent-soft:rgba(194,65,12,.08);
+    --accent:#047857; --accent-2:#0f766e; --accent-soft:rgba(4,120,87,.08);
     --cream:#18181b; --muted:#52525b; --dim:#71717a;
     --ok:#15803d; --info:#2563eb; --bad:#dc2626; --violet:#7c3aed;
     /* legacy aliases kept so mockup-derived snippets keep working */
@@ -128,7 +128,7 @@ const GLOBAL_STYLE = `
   html,body{margin:0;padding:0;background:var(--bg);color:var(--cream);
     font-family:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
     -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-  ::selection{background:rgba(194,65,12,.14)}
+  ::selection{background:rgba(4,120,87,.14)}
   a{color:var(--accent);text-decoration:none}
   a:hover{color:var(--accent-2)}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
@@ -277,7 +277,7 @@ function navItemLocked(item: Item): string {
     "display:flex;align-items:center;gap:11px;padding:9px 11px;font-size:13px;color:var(--dim)";
   return `<a href="${UPGRADE_URL}" class="navlink" style="${base}" title="Disponible en Pro">
     <i data-lucide="lock" width="15" height="15" style="color:var(--dim)"></i> ${item.label}
-    <span style="margin-left:auto;font-size:9px;letter-spacing:.1em;font-weight:600;color:var(--accent2);background:rgba(180,83,9,.08);border-radius:var(--r-pill);padding:2px 8px">PRO</span>
+    <span style="margin-left:auto;font-size:9px;letter-spacing:.1em;font-weight:600;color:var(--accent2);background:rgba(15,118,110,.08);border-radius:var(--r-pill);padding:2px 8px">PRO</span>
   </a>`;
 }
 

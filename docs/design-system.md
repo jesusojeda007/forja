@@ -6,7 +6,7 @@ already loads the fonts, Tailwind config, tokens, lucide, htmx and all the
 component classes below. Views only render the **body** — write it to match
 this system.
 
-Design read: neutral zinc surfaces + ONE burnt-orange accent (the Forja brand),
+Design read: neutral zinc surfaces + ONE emerald accent (#047857, AA on white),
 soft rounded corners (cards 12px, controls 8px, badges full), diffuse shadows,
 Inter for UI text. Text colors pass WCAG AA on their surfaces. The old dark
 retro-terminal theme AND the intermediate brutalist hard-shadow system are both
@@ -33,9 +33,9 @@ color** (for `class="…"`). Use whichever fits; they resolve to the same hex.
 | `--raise` | `bg-raise` | `#eceae6` | raised chips / avatars |
 | `--line` | `border-line` | `#e5e3df` | default border / divider |
 | `--linelit` | `border-linelit` | `#cfccc6` | lit border, hard-shadow color |
-| `--accent` | `text-accent` `bg-accent` `border-accent` | `#c2410c` | primary accent (burnt orange, AA on light) |
-| `--accent-soft` | `bg-accent-soft` | `rgba(194,65,12,.10)` | accent wash / active bg |
-| `--accent-2` | `text-accent2` | `#b45309` | secondary accent (amber): AI/insights |
+| `--accent` | `text-accent` `bg-accent` `border-accent` | `#047857` | primary accent (emerald, AA on light) |
+| `--accent-soft` | `bg-accent-soft` | `rgba(4,120,87,.08)` | accent wash / active bg |
+| `--accent-2` | `text-accent2` | `#0f766e` | secondary accent (teal): AI/insights |
 | `--cream` | `text-cream` | `#1c1917` | primary text (near-black; name kept for compat) |
 | `--muted` | `text-muted` | `#57534e` | secondary text |
 | `--dim` | `text-dim` | `#79716b` | tertiary text, labels, captions |
@@ -44,11 +44,12 @@ color** (for `class="…"`). Use whichever fits; they resolve to the same hex.
 | `--bad` | `text-bad` `border-bad` | `#b91c1c` | danger / red (angry, handoff, errors) |
 | `--violet` | `text-violet` | `#7c3aed` | model/memory accents in the flow canvas |
 
-Buttons on `--accent` use white text (`#ffffff`, 4.8:1 on the burnt orange) —
+Buttons on `--accent` use white text (`#ffffff`, ~5:1 on the emerald) —
 there is no token for it; write the hex.
 
-Success/warn washes use `rgba(21,128,61,α)` (the `--ok` green) and
-`rgba(194,65,12,α)` (the accent). Don't reintroduce the old dark-theme hexes
+Success washes use `rgba(21,128,61,α)` (the `--ok` green) and accent washes
+`rgba(4,120,87,α)`. Warning text keeps the amber `#b45309` on purpose
+(semantic color, independent of the accent). Don't reintroduce the old dark-theme hexes
 (`#f07a3f`, `#7fb77e`, `#1a1206`, `rgba(127,183,126,…)`, …).
 
 Legacy aliases (`--border`, `--border-lit`, `--green`, `--blue`, `--red`) are
