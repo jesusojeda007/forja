@@ -2,7 +2,12 @@
 // (e.g. a barbershop owner). No raw numbers, no "pick 1-10": every technical
 // setting is a group of 2-3 selectable cards (radio + inline SVG icon + short
 // label + one-line plain-Spanish description). Text settings are plain inputs /
-// textareas with clear labels (no jargon). The form POSTs to /admin/config.
+// textareas with clear labels (no jargon).
+//
+// La página está dividida en SECCIONES independientes (negocio, comportamiento,
+// cobros, modelo de IA), cada una con su propio <form> y botón Guardar. El
+// handler POST /admin/config es parcial-safe: guarda solo las llaves que
+// llegan en el body, así que cada sección puede postear por su cuenta.
 import type { Env } from "../../env";
 import { SETTING_KEYS } from "../../db/settings";
 import { renderBusinessContext } from "../../businessContext";
@@ -22,8 +27,28 @@ function esc(s: string): string {
   );
 }
 
-// Brand accent = orange (Horizontes retro-terminal theme). The selected card
-// lights up accent; the hidden radio drives the highlight via Tailwind's `peer`
+/** Encabezado de sección: chip de icono + título + descripción de una línea. */
+function sectionHead(icon: string, title: string, desc: string): string {
+  return `
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="width:34px;height:34px;flex:none;border-radius:9px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center">
+        <i data-lucide="${icon}" width="17" height="17" style="color:var(--accent)"></i>
+      </div>
+      <div style="min-width:0">
+        <h2 class="font-display font-semibold text-[15px] text-cream" style="margin:0">${esc(title)}</h2>
+        <p class="text-muted text-[12.5px]" style="margin:3px 0 0;line-height:1.45">${esc(desc)}</p>
+      </div>
+    </div>`;
+}
+
+const SAVE_BTN = `
+  <button type="submit" class="bigbtn font-display font-bold text-[12.5px] cursor-pointer"
+          style="width:fit-content;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:10px 20px;display:flex;align-items:center;gap:8px">
+    <i data-lucide="check" width="15" height="15"></i> Guardar cambios
+  </button>`;
+
+// Brand accent = emerald (modern light theme). The selected card lights up
+// accent; the hidden radio drives the highlight via Tailwind's `peer`
 // utilities so the whole card is clickable (it's a <label>).
 const CARD_BASE =
   "peer-checked:border-accent peer-checked:bg-accent-soft " +
@@ -50,7 +75,7 @@ function renderCardGroup(control: ControlDef, settings: Record<string, string>):
     })
     .join("");
   return `
-    <fieldset style="display:flex;flex-direction:column;gap:8px">
+    <fieldset style="display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0">
       <legend class="font-display font-semibold text-[13.5px] text-cream">${esc(control.title)}</legend>
       <p class="text-muted text-[12px]">${esc(control.help)}</p>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">${cards}</div>
@@ -100,8 +125,8 @@ function renderTextArea(opts: {
 const SELECT_STYLE =
   "background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 12px;font-size:12.5px;outline:none;width:100%";
 
-/** Sección "Modelo de IA": proveedor + API key propia + modelo concreto. */
-function renderLlmSection(settings: Record<string, string>, llmTest?: string): string {
+/** Contenido de la sección "Modelo de IA": proveedor + key propia + modelo. */
+function renderLlmFields(settings: Record<string, string>): string {
   const provider = settings[SETTING_KEYS.llmProvider] ?? "";
   const model = settings[SETTING_KEYS.llmModel] ?? "";
   const hasKey = (settings[SETTING_KEYS.llmApiKey] ?? "").trim() !== "";
@@ -126,20 +151,7 @@ function renderLlmSection(settings: Record<string, string>, llmTest?: string): s
     .map((m) => `<option value="${esc(m.id)}" ${model === m.id ? "selected" : ""}>${esc(m.label)}</option>`)
     .join("");
 
-  let testBanner = "";
-  if (llmTest?.startsWith("ok:")) {
-    testBanner = `<div style="border:1px solid var(--ok);background:rgba(21,128,61,.08);color:var(--ok);padding:9px 12px;font-size:12px;font-weight:600">✓ Conexión exitosa — respondió ${esc(llmTest.slice(3))}</div>`;
-  } else if (llmTest?.startsWith("err:")) {
-    testBanner = `<div style="border:1px solid var(--bad);background:rgba(185,28,28,.06);color:var(--bad);padding:9px 12px;font-size:12px;font-weight:600">✕ Falló la prueba: ${esc(llmTest.slice(4, 200))}</div>`;
-  }
-
   return `
-    <div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:18px">
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <h3 class="font-display font-semibold text-[13.5px] text-cream">🧠 Modelo de IA</h3>
-        <p class="text-dim text-[12px]">Elige qué inteligencia artificial usa tu bot. Puedes usar tu propia API key para pagar tú el consumo directamente. Si lo dejas en automático, el bot usa la configuración incluida (rápido para lo simple, inteligente para lo difícil).</p>
-      </div>
-      ${testBanner}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
         <div style="display:flex;flex-direction:column;gap:6px">
           <label class="font-display font-semibold text-[12.5px] text-cream">Proveedor</label>
@@ -163,7 +175,49 @@ function renderLlmSection(settings: Record<string, string>, llmTest?: string): s
         ${hasKey ? `<label class="text-dim text-[11.5px]" style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" name="llm_api_key_clear" value="1"> Quitar mi API key y volver a la del sistema</label>` : ""}
       </div>
       <a href="/admin/config/llm-test" class="text-[12px] font-display font-semibold"
-         style="width:fit-content;border:1px solid var(--line);color:var(--cream);padding:9px 14px;text-decoration:none">⚡ Probar mi configuración (guarda primero)</a>
+         style="width:fit-content;border:1px solid var(--line);color:var(--cream);padding:9px 14px;text-decoration:none">⚡ Probar mi configuración (guarda primero)</a>`;
+}
+
+/** Banner de resultado de la prueba de conexión BYO-LLM. */
+function renderLlmTestBanner(llmTest?: string): string {
+  if (llmTest?.startsWith("ok:")) {
+    return `<div style="border:1px solid var(--ok);background:rgba(21,128,61,.08);color:var(--ok);padding:9px 12px;font-size:12px;font-weight:600;border-radius:8px">✓ Conexión exitosa — respondió ${esc(llmTest.slice(3))}</div>`;
+  }
+  if (llmTest?.startsWith("err:")) {
+    return `<div style="border:1px solid var(--bad);background:rgba(185,28,28,.06);color:var(--bad);padding:9px 12px;font-size:12px;font-weight:600;border-radius:8px">✕ Falló la prueba: ${esc(llmTest.slice(4, 200))}</div>`;
+  }
+  return "";
+}
+
+/** Card autocontenida del QR de pago: su propio form, se guarda al instante. */
+function renderQrUploaderCard(settings: Record<string, string>): string {
+  return `
+    <div class="bg-panel border border-line rounded-xl" style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="width:34px;height:34px;flex:none;border-radius:9px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center">
+            <i data-lucide="qr-code" width="17" height="17" style="color:var(--accent)"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-semibold text-[14px] text-cream" style="margin:0">Tu QR de pago</h3>
+            <p class="text-muted text-[12.5px]" style="margin:3px 0 0;line-height:1.45">Sube la foto de tu QR (el de tu banco o wallet). Cuando un cliente quiera pagar, el bot se la manda por el chat. Se guarda al instante — no necesitas el botón Guardar.</p>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        ${settings[SETTING_KEYS.paymentQrUrl]
+          ? `<img src="${settings[SETTING_KEYS.paymentQrUrl]}" alt="QR actual" width="96" height="96"
+               style="border:1px solid var(--line);border-radius:8px;object-fit:contain;background:#fff;padding:4px">`
+          : `<div class="text-dim" style="font-size:12px;width:96px;height:96px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);border-radius:8px">sin QR</div>`}
+        <form method="POST" action="/admin/config/qr-upload" enctype="multipart/form-data"
+              style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <input type="file" name="qr" accept="image/png,image/jpeg,image/webp" required
+                 style="font-size:12px;color:var(--muted);max-width:260px">
+          <button type="submit" class="ghostbtn" style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:9px 16px;font-size:12.5px;cursor:pointer">
+            Subir QR
+          </button>
+        </form>
+      </div>
     </div>`;
 }
 
@@ -188,29 +242,24 @@ export function renderConfig(
   const hasPromptOverride = (settings[SETTING_KEYS.systemPromptOverride] ?? "").trim() !== "";
 
   const savedBanner = saved
-    ? `<div style="border:1px solid var(--ok);background:rgba(21,128,61,.08);color:var(--ok);padding:10px 14px;font-size:12.5px;font-weight:600">Guardado ✓</div>`
+    ? `<div style="border:1px solid var(--ok);background:rgba(21,128,61,.08);color:var(--ok);padding:10px 14px;font-size:12.5px;font-weight:600;border-radius:8px">Guardado ✓</div>`
+    : "";
+  const errBanner = err
+    ? `<div style="border:1px solid var(--bad);background:rgba(185,28,28,.06);color:var(--bad);padding:11px 16px;font-size:12.5px;border-radius:8px">${err}</div>`
     : "";
 
+  const sectionCard = (inner: string) =>
+    `<div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:16px">${inner}</div>`;
+
   const body = `
-    <form method="POST" action="/admin/config" style="display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;flex-direction:column;gap:20px">
       ${savedBanner}
-      ${err ? `<div style="border:1px solid var(--bad);background:rgba(185,28,28,.06);color:var(--bad);padding:11px 16px;font-size:12.5px;margin-bottom:14px">${err}</div>` : ""}
+      ${errBanner}
 
-      <div style="display:flex;flex-direction:column;gap:2px">
-        <h2 class="font-display font-semibold text-[15px] text-cream">Panel de control de ${esc(env.BUSINESS_NAME)}</h2>
-        <p class="text-muted text-[12.5px]">Ajuste cómo se comporta su bot. Los cambios se guardan al presionar el botón de abajo.</p>
-      </div>
-
-      <!-- Card-based controls (tono, velocidad, estilo, cerebro, estado) -->
-      <div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:22px">
-        ${cardGroups}
-      </div>
-
-      <!-- Modelo de IA (BYO provider/key/model) -->
-      ${renderLlmSection(settings, llmTest)}
-
-      <!-- Free-text settings -->
-      <div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:18px">
+      <!-- ═══ 1 · Tu negocio ═══ -->
+      <form method="POST" action="/admin/config" style="display:contents">
+      ${sectionCard(`
+        ${sectionHead("store", "Tu negocio", `La información de ${esc(env.BUSINESS_NAME)} que el bot usa para responder a tus clientes: horarios, servicios, precios, ubicación.`)}
         ${renderTextField({
           name: SETTING_KEYS.botName,
           label: "Nombre del bot",
@@ -218,7 +267,6 @@ export function renderConfig(
           value: settings[SETTING_KEYS.botName] ?? "",
           placeholder: env.BOT_NAME ?? "Mi asistente",
         })}
-
         ${renderTextArea({
           name: SETTING_KEYS.businessContext,
           label: "Información del negocio",
@@ -230,19 +278,15 @@ export function renderConfig(
           placeholder: "Ej. Abrimos lunes a sábado de 9 a 7. Corte $150, barba $100. Estamos en Av. Reforma 123.",
           rows: 6,
         })}
+        ${SAVE_BTN}
+      `)}
+      </form>
 
-        ${renderTextArea({
-          name: SETTING_KEYS.systemPromptOverride,
-          label: "Prompt del agente (avanzado)",
-          help: hasPromptOverride
-            ? "✍ Modo manual: su bot está usando este texto como prompt completo, en lugar del automático. Para verlo entero o volver al automático: Mi Agente → Flujo → Agente."
-            : "⚠️ Lo que escriba aquí REEMPLAZA el prompt completo del bot — incluida la información del negocio de arriba, su base de conocimiento y sus reglas de seguridad. No agrega instrucciones: las sustituye. Déjelo vacío para usar el prompt automático. Para editar sobre el prompt real, vaya a Mi Agente → Flujo → Agente.",
-          value: settings[SETTING_KEYS.systemPromptOverride] ?? "",
-          placeholder:
-            "Vacío = el bot usa su prompt automático completo: la información del negocio, su base de conocimiento y sus reglas de seguridad.",
-          rows: 4,
-        })}
-
+      <!-- ═══ 2 · Cómo trabaja tu bot ═══ -->
+      <form method="POST" action="/admin/config" style="display:contents">
+      ${sectionCard(`
+        ${sectionHead("settings-2", "Cómo trabaja tu bot", "Personalidad, velocidad y criterios: qué tan formal habla, qué tan rápido responde y cuándo pasa a un humano.")}
+        ${cardGroups}
         ${renderTextField({
           name: SETTING_KEYS.escalationKeywords,
           label: "Palabras que piden un humano",
@@ -250,59 +294,67 @@ export function renderConfig(
           value: settings[SETTING_KEYS.escalationKeywords] ?? "",
           placeholder: "queja, reembolso, hablar con alguien",
         })}
+        <fieldset style="display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0">
+          <legend class="font-display font-semibold text-[13.5px] text-cream">Avanzado · prompt del agente</legend>
+          ${renderTextArea({
+            name: SETTING_KEYS.systemPromptOverride,
+            label: "Prompt del agente (avanzado)",
+            help: hasPromptOverride
+              ? "✍ Modo manual: su bot está usando este texto como prompt completo, en lugar del automático. Para verlo entero o volver al automático: Mi Agente → Flujo → Agente."
+              : "⚠️ Lo que escriba aquí REEMPLAZA el prompt completo del bot — incluida la información del negocio de arriba, su base de conocimiento y sus reglas de seguridad. No agrega instrucciones: las sustituye. Déjelo vacío para usar el prompt automático. Para editar sobre el prompt real, vaya a Mi Agente → Flujo → Agente.",
+            value: settings[SETTING_KEYS.systemPromptOverride] ?? "",
+            placeholder:
+              "Vacío = el bot usa su prompt automático completo: la información del negocio, su base de conocimiento y sus reglas de seguridad.",
+            rows: 4,
+          })}
+        </fieldset>
+        ${SAVE_BTN}
+      `)}
+      </form>
 
-        <div style="border:1px solid var(--line);padding:14px 16px;margin-bottom:10px">
-          <div style="font-size:13px;color:var(--cream);font-weight:600;margin-bottom:4px">QR de pago</div>
-          <div class="text-muted" style="font-size:12px;line-height:1.5;margin-bottom:10px">
-            Sube la foto de tu QR (el de tu banco o wallet). Cuando un cliente quiera pagar, el bot se la manda por el chat. Debe ser PNG, JPG o WEBP (máx 2 MB).
-          </div>
-          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-            ${settings[SETTING_KEYS.paymentQrUrl]
-              ? `<img src="${settings[SETTING_KEYS.paymentQrUrl]}" alt="QR actual" width="96" height="96"
-                   style="border:1px solid var(--line);object-fit:contain;background:#fff;padding:4px">`
-              : `<div class="text-dim" style="font-size:12px;width:96px;height:96px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line)">sin QR</div>`}
-            <form method="POST" action="/admin/config/qr-upload" enctype="multipart/form-data"
-                  style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <input type="file" name="qr" accept="image/png,image/jpeg,image/webp" required
-                     style="font-size:12px;color:var(--muted);max-width:260px">
-              <button type="submit" class="ghostbtn" style="background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:9px 16px;font-size:12.5px;cursor:pointer">
-                Subir QR
-              </button>
-            </form>
-          </div>
-        </div>
-
-        ${renderTextField({
-          name: SETTING_KEYS.paymentQrUrl,
-          label: "URL del QR (opcional, avanzado)",
-          help: "Normalmente no lo necesitas: al subir el QR de arriba, esta URL se llena sola. Edítala solo si hospedas la imagen en otro lado.",
-          value: settings[SETTING_KEYS.paymentQrUrl] ?? "",
-          placeholder: "https://tu-bot.workers.dev/qr?v=...",
-        })}
-
-        ${renderTextArea({
-          name: SETTING_KEYS.paymentInstructions,
-          label: "Instrucciones de pago",
-          help: "Lo que el bot le dice al cliente junto con el QR: cuenta, medios de pago, costos de envío, etc.",
-          value: settings[SETTING_KEYS.paymentInstructions] ?? "",
-          placeholder: "Escanea con la app de tu banco (cualquier banco sirve). Si pagas contra entrega, avísame.",
-          rows: 3,
-        })}
-
-        ${renderTextField({
-          name: SETTING_KEYS.catalogSourceUrl,
-          label: "URL de catálogo (opcional)",
-          help: "Si tu tienda ya publica sus productos, pégalos aquí y el bot los lee solo, siempre actualizado. Acepta el /products.json de Shopify, la API de WooCommerce (/wp-json/wc/store/products) o un CSV de Google Sheets publicado.",
-          value: settings[SETTING_KEYS.catalogSourceUrl] ?? "",
-          placeholder: "https://tu-tienda.com/products.json",
-        })}
+      <!-- ═══ 3 · Cobros y catálogo ═══ -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${sectionHead("credit-card", "Cobros y catálogo", "Cómo cobra tu bot y qué vende: tu QR de pago, las instrucciones de pago y los productos que muestra.")}
+        ${renderQrUploaderCard(settings)}
+        <form method="POST" action="/admin/config" style="display:contents">
+        ${sectionCard(`
+          ${renderTextArea({
+            name: SETTING_KEYS.paymentInstructions,
+            label: "Instrucciones de pago",
+            help: "Lo que el bot le dice al cliente junto con el QR: cuenta, medios de pago, costos de envío, etc.",
+            value: settings[SETTING_KEYS.paymentInstructions] ?? "",
+            placeholder: "Escanea con la app de tu banco (cualquier banco sirve). Si pagas contra entrega, avísame.",
+            rows: 3,
+          })}
+          ${renderTextField({
+            name: SETTING_KEYS.catalogSourceUrl,
+            label: "URL de catálogo (opcional)",
+            help: "Si tu tienda ya publica sus productos, pégalos aquí y el bot los lee solo, siempre actualizado. Acepta el /products.json de Shopify, la API de WooCommerce (/wp-json/wc/store/products) o un CSV de Google Sheets publicado.",
+            value: settings[SETTING_KEYS.catalogSourceUrl] ?? "",
+            placeholder: "https://tu-tienda.com/products.json",
+          })}
+          ${renderTextField({
+            name: SETTING_KEYS.paymentQrUrl,
+            label: "URL del QR (opcional, avanzado)",
+            help: "Normalmente no lo necesitas: al subir el QR de arriba, esta URL se llena sola. Edítala solo si hospedas la imagen en otro lado.",
+            value: settings[SETTING_KEYS.paymentQrUrl] ?? "",
+            placeholder: "https://tu-bot.workers.dev/qr?v=...",
+          })}
+          ${SAVE_BTN}
+        `)}
+        </form>
       </div>
 
-      <button type="submit" class="bigbtn font-display font-bold text-[13px] cursor-pointer"
-              style="width:fit-content;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:13px 24px;display:flex;align-items:center;gap:9px">
-        <i data-lucide="check" width="16" height="16"></i> Guardar cambios
-      </button>
-    </form>`;
+      <!-- ═══ 4 · Modelo de IA ═══ -->
+      <form method="POST" action="/admin/config" style="display:contents">
+      ${sectionCard(`
+        ${sectionHead("brain", "Modelo de IA", "Qué inteligencia artificial usa tu bot. Puedes usar tu propia API key para pagar tú el consumo directamente. En automático, el bot usa la configuración incluida (rápido para lo simple, inteligente para lo difícil).")}
+        ${renderLlmTestBanner(llmTest)}
+        ${renderLlmFields(settings)}
+        ${SAVE_BTN}
+      `)}
+      </form>
+    </div>`;
 
   return layout({ title: "Config", activeTab: "config", body, env });
 }
