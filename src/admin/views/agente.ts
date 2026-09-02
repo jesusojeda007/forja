@@ -178,7 +178,7 @@ async function loadAgenteData(env: Env): Promise<AgenteData> {
     .catch(() => [] as ToolUsageRow[]);
   const usage = new Map(usageRows.filter((r) => r.tool).map((r) => [r.tool, r]));
 
-  const toolNames = Object.keys(buildTools({ env, getConversationId: () => null }));
+  const toolNames = Object.keys(buildTools({ env, getConversationId: () => null, getChannel: () => null, getChannelUserId: () => null }));
   const cfg = await resolveAgentConfig(env, toolNames);
   const disabled = toolNames.filter((n) => !cfg.enabledToolNames.includes(n));
   const settings = await new SettingsRepo(db).all();
@@ -647,7 +647,7 @@ export async function renderNodeModal(env: Env, nodeId: string, saved = false): 
  * (returns false) so the route can't write garbage into settings.
  */
 export async function toggleTool(env: Env, name: string): Promise<boolean> {
-  const known = Object.keys(buildTools({ env, getConversationId: () => null }));
+  const known = Object.keys(buildTools({ env, getConversationId: () => null, getChannel: () => null, getChannelUserId: () => null }));
   if (!known.includes(name)) return false;
 
   const repo = new SettingsRepo(new Db(env.DB));

@@ -11,11 +11,11 @@ function makeCtx(tier: "free" | "pro", niche?: string): ToolContext {
     OWNER_EMAIL: "owner@test.com",
     DASHBOARD_BASE_URL: "https://example.com",
   } as any;
-  return { env, getConversationId: () => "conv-1" };
+  return { env, getConversationId: () => "conv-1", getChannel: () => null, getChannelUserId: () => null };
 }
 
 describe("buildTools", () => {
-  it("registers the 6 free-tier tools (incluye captureLead y scheduleAppointment)", () => {
+  it("registers the 7 free-tier tools (incluye captureLead, scheduleAppointment y sendPaymentQr)", () => {
     const tools = buildTools(makeCtx("free"));
     expect(Object.keys(tools).sort()).toEqual([
       "captureLead",
@@ -23,6 +23,7 @@ describe("buildTools", () => {
       "pauseBot",
       "scheduleAppointment",
       "searchKb",
+      "sendPaymentQr",
       "snoozeUser",
     ]);
   });
@@ -34,7 +35,7 @@ describe("buildTools", () => {
     expect(tools.catalogQuery).toBeUndefined();
   });
 
-  it("pro tier has the 6 base tools plus catalogQuery (Pro)", () => {
+  it("pro tier has the 7 base tools plus catalogQuery (Pro)", () => {
     const tools = buildTools(makeCtx("pro"));
     expect(Object.keys(tools).sort()).toEqual([
       "captureLead",
@@ -43,6 +44,7 @@ describe("buildTools", () => {
       "pauseBot",
       "scheduleAppointment",
       "searchKb",
+      "sendPaymentQr",
       "snoozeUser",
     ]);
     expect(tools.scheduleAppointment).toBeDefined();

@@ -321,9 +321,12 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   // se asume Pro para no ocultar nada por accidente.
   const pro = opts.env ? isPro(opts.env) : true;
   const niche = opts.env ? getNiche(opts.env) : null;
-  const disabledTabs = new Set(
-    (opts.env?.DISABLED_TABS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-  );
+  // El pack del nicho trae sus pestañas ocultas por defecto; DISABLED_TABS es
+  // el override manual del dueño (se suma, nunca re-activa las del pack).
+  const disabledTabs = new Set([
+    ...((opts.env?.DISABLED_TABS ?? "").split(",").map((s) => s.trim()).filter(Boolean)),
+    ...(niche?.hiddenTabs ?? []),
+  ]);
   const section = NAV.find((s) => s.items.some((i) => i.id === opts.activeTab)) ?? NAV[0];
   const item = applyNiche(section.items.find((i) => i.id === opts.activeTab) ?? section.items[0], niche);
 

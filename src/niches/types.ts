@@ -36,4 +36,10 @@ export interface NichePack {
   defaultTone: string;
   /** Docs de KB sugeridos para el setup del giro. */
   kbDocs: string[];
+  /**
+   * Pestañas del panel /admin que no aplican a este giro (ids del NAV en
+   * admin/views/layout.ts). Se combinan con DISABLED_TABS (que siempre gana
+   * como override manual del dueño). Vacío = panel completo.
+   */
+  hiddenTabs: string[];
 }

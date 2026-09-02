@@ -248,6 +248,31 @@ export function renderConfig(
           value: settings[SETTING_KEYS.escalationKeywords] ?? "",
           placeholder: "queja, reembolso, hablar con alguien",
         })}
+
+        ${renderTextField({
+          name: SETTING_KEYS.paymentQrUrl,
+          label: "URL del QR de pago",
+          help: "Imagen pública de tu QR (el de tu banco o wallet). Cuando un cliente quiera pagar, el bot se la manda por el chat. Déjalo vacío si no cobras por QR.",
+          value: settings[SETTING_KEYS.paymentQrUrl] ?? "",
+          placeholder: "https://tu-bot.workers.dev/qr.png",
+        })}
+
+        ${renderTextArea({
+          name: SETTING_KEYS.paymentInstructions,
+          label: "Instrucciones de pago",
+          help: "Lo que el bot le dice al cliente junto con el QR: cuenta, medios de pago, costos de envío, etc.",
+          value: settings[SETTING_KEYS.paymentInstructions] ?? "",
+          placeholder: "Escanea con la app de tu banco (cualquier banco sirve). Si pagas contra entrega, avísame.",
+          rows: 3,
+        })}
+
+        ${renderTextField({
+          name: SETTING_KEYS.catalogSourceUrl,
+          label: "URL de catálogo (opcional)",
+          help: "Si tu tienda ya publica sus productos, pégalos aquí y el bot los lee solo, siempre actualizado. Acepta el /products.json de Shopify, la API de WooCommerce (/wp-json/wc/store/products) o un CSV de Google Sheets publicado.",
+          value: settings[SETTING_KEYS.catalogSourceUrl] ?? "",
+          placeholder: "https://tu-tienda.com/products.json",
+        })}
       </div>
 
       <button type="submit" class="bigbtn font-display font-bold text-[13px] cursor-pointer"

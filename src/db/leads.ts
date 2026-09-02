@@ -93,6 +93,14 @@ export class LeadsRepo {
     );
   }
 
+  /** El lead más reciente de la conversación (para adjuntar pagos/pedidos). */
+  async latestByConversation(conversationId: string): Promise<Lead | null> {
+    return this.db.first<Lead>(
+      "SELECT * FROM leads WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 1",
+      [conversationId],
+    );
+  }
+
   async setExported(id: string, target: string, externalId: string): Promise<void> {
     await this.db.run(
       "UPDATE leads SET exported_to = ?, external_id = ?, updated_at = ? WHERE id = ?",

@@ -96,4 +96,14 @@ export const telegramAdapter: ChannelAdapter = {
       body: JSON.stringify({ chat_id: channelUserId, action: "typing" }),
     }).catch(() => {});
   },
+
+  async sendImage({ channelUserId, url, caption }, env: Env) {
+    const token = env.TELEGRAM_BOT_TOKEN;
+    if (!token) throw new Error("TELEGRAM_BOT_TOKEN not set");
+    await fetch(`${TG_API}${token}/sendPhoto`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: channelUserId, photo: url, caption }),
+    });
+  },
 };

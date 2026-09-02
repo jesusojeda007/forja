@@ -28,6 +28,14 @@ export const SETTING_KEYS = {
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai
   llmApiKey: "llm_api_key", // owner's API key; empty = use the env key
   llmModel: "llm_model", // concrete model id; empty = auto tiers (fast⇄smart)
+  // Pagos por QR (Bolivia y similar): URL pública de la imagen del QR del
+  // negocio (se sirve desde el propio Worker o donde la suba el dueño) y las
+  // instrucciones que el bot cita al cobrar. Vacío = la tool no ofrece QR.
+  paymentQrUrl: "payment_qr_url",
+  paymentInstructions: "payment_instructions",
+  // Catálogo por URL: feed público del propio negocio (Shopify products.json,
+  // WooCommerce store API o CSV de Google Sheets). Se cachea en D1 con TTL.
+  catalogSourceUrl: "catalog_source_url",
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

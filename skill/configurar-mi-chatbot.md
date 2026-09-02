@@ -177,6 +177,14 @@ wrangler secret put OPENAI_API_KEY
 ```
 Y en `wrangler.toml`, dentro de `[vars]`, pon `LLM_PROVIDER = "openai"`.
 
+**Caso especial — gateway compatible con OpenAI:** si el miembro usa un servicio que expone la API de chat-completions con el mismo formato que OpenAI pero en otro dominio (OpenRouter, OpenCode Zen, proxys corporativos, etc.), setea también en `[vars]`:
+
+```toml
+OPENAI_BASE_URL = "https://openrouter.ai/api/v1"
+```
+
+Si no se setea, el bot habla directo con `api.openai.com` (comportamiento normal). Ojo: la llave que se guarda en el secret `OPENAI_API_KEY` debe ser la del gateway, no la de OpenAI.
+
 (Si no tiene la llave, mándalo a la consola del proveedor que eligió, espera a que la tenga, y luego corre el comando. La llave de pago es lo único que cuesta: fracciones de centavo por conversación.)
 
 ### Paso 1.5 — Contraseña del panel (Basic Auth)
@@ -274,6 +282,38 @@ wrangler secret put GOOGLE_SERVICE_ACCOUNT_JSON  # si su flujo lo requiere
 ```
 
 👀 Después: "Estas tareas también las vas a ver en tu panel → **Configuración**."
+
+### Paso 2.2b — Enfocar el panel al nicho (opcional pero recomendado)
+
+Cada negocio es distinto: a una tienda que vende no le sirve la mesa de tickets, y a un taller no le sirven las campañas. Para que el miembro reciba **un Forja hecho a su nicho** (y no un panel con pestañas que nunca va a abrir), pregunta:
+
+- ¿Tu negocio maneja tickets de soporte formal? Si dice que no → apunta `tickets`.
+- ¿Hace campañas de marketing / difusión? Si dice que no → apunta `campanas`.
+
+Si quedó algo apuntado, escribe en `wrangler.toml` (`[vars]`), separado por coma:
+
+```toml
+DISABLED_TABS = "tickets,campanas"
+```
+
+(Ids válidos y ejemplos por tipo de negocio: ver la sección "Resumen de secrets, variables y comandos" al final. Si el miembro duda, deja todas las pestañas visibles — se puede cambiar después editando la variable y re-desplegando.)
+
+### Paso 2.2c — Cobros por QR (Bolivia y similar, opcional)
+
+Si el miembro cobra con **QR interoperable** (su QR bancario o wallet: BCP, Mercantil, BNB, Simple, Mach…), el bot puede entregar el QR en el chat cuando el cliente decide comprar, y **confirmar la venta sola** cuando el banco avisa el depósito por correo:
+
+1. **QR del negocio:** pídele la imagen de su QR y sírvela pública (ej. súbelo al bucket `CATALOG` de R2 con `wrangler r2 object put` o a su hosting) y pega la URL en **Panel → Configuración → URL del QR de pago**. En el mismo panel escribe las **Instrucciones de pago** (cuenta, envíos, etc.). Sin QR configurado el bot simplemente no ofrece cobrar por QR.
+2. **Confirmación automática (opcional, en el Cloudflare del miembro):** en el dashboard de Cloudflare, crea un **Email Routing** cuyo destino sea este Worker ("Send to a Worker") y haz que su banco envíe las notificaciones de depósito ahí (o crea una regla que las reenvíe). Forja matchea el monto del correo contra los pagos pendientes de las últimas 48h: **match único → marca la venta sola** y avisa por Telegram; ambiguo o sin match → avisa al dueño para que él decida. Nunca confirma por el "ya pagué" del cliente: la fuente de verdad es el correo del banco.
+
+### Paso 2.2d — Catálogo por URL (si el negocio ya tiene tienda en línea)
+
+Si el miembro ya publica sus productos en una tienda web, el bot puede leer el catálogo **solo y siempre actualizado** — sin cargar productos a mano y sin re-desplegar cuando cambia un precio. Pídele UNA de estas tres URL y pégala en **Panel → Configuración → URL de catálogo**:
+
+- **Shopify** → `https://su-tienda.com/products.json` (público por defecto en casi todas las tiendas Shopify).
+- **WooCommerce** → `https://su-tienda.com/wp-json/wc/store/products` (público por defecto).
+- **Google Sheets** → la planilla de productos publicada como CSV (Archivo → Compartir → Publicar en la web → CSV). Encabezados: `nombre, precio, descripción, sku, url`.
+
+Forja la consulta con cache de 1 hora y, si la fuente cae, responde con el último snapshot — la conversación nunca se rompe por el catálogo. Si el negocio NO tiene tienda web, sáltalo: el bot igual atiende con la base de conocimiento.
 
 ### Paso 2.3 — Idioma
 
@@ -587,7 +627,21 @@ Con el bot YA vivo y probado (no antes), remata así — sin presión, ya probó
 **Variables** en `wrangler.toml` (`[vars]`):
 - `BOT_NAME`, `BUSINESS_NAME`, `BOT_LANGUAGE`, `BOT_TIER` (= `free` en el Starter), `BUFFER_SECONDS`, `DASHBOARD_BASE_URL`.
 - `LLM_PROVIDER` — `"anthropic"` (default) o `"openai"`. Cambia el proveedor de IA; se puede cambiar después y re-desplegar (o desde el panel → Configuración → Modelo de IA).
+- `OPENAI_BASE_URL` — opcional. Solo si `LLM_PROVIDER = "openai"` con un gateway compatible (OpenRouter, OpenCode Zen, etc.) en vez de OpenAI directo. Ver Paso 1.4.
 - Opcionales para fijar modelos: `ANTHROPIC_MODEL_FAST`/`ANTHROPIC_MODEL_SMART`, `OPENAI_MODEL_FAST`/`OPENAI_MODEL_SMART`.
+- `DISABLED_TABS` — opcional. Oculta pestañas del panel `/admin` que no aplican a este negocio. Ids separados por coma (ver lista abajo). Ejemplo para una tienda que no hace campañas: `DISABLED_TABS = "campanas"`. Ausente = todas las pestañas visibles.
+  - Si seteas `BOT_NICHE` (ej. `tienda`), el pack **ya oculta sus pestañas por defecto** (tienda oculta `tickets`); `DISABLED_TABS` se suma como ajuste fino del dueño, nunca re-activa las del pack.
+
+**Ids válidos para `DISABLED_TABS`** (pestañas del panel): `overview`, `conversations`, `leads`, `tickets`, `campanas`, `agente`, `kb`, `mejoras`, `conexiones`, `config`, `insights`, `stats`, `costs`.
+
+> ⚠️ `DISABLED_TABS` solo oculta las pestañas de la navegación; las rutas de `/admin` siguen existiendo. Es para enfocar el panel en lo que el negocio usa, no para restringir acceso.
+
+**Regla práctica por tipo de negocio** (pregúntale al miembro qué usa y oculta el resto; menos ruido = panel más claro):
+
+- **Tienda / e-commerce** → suele sobrar `tickets` (y `campanas` si no hace marketing).
+- **Negocio de servicios con citas** → suele sobrar `tickets`.
+- **Restaurante / local físico** → suele sobrar `tickets`, `campanas`.
+- Ante la duda, no ocultes nada: cuesta poco dejar una pestaña y mucho quitar una que sí usaba.
 
 **Bindings** ya declarados en `wrangler.toml`:
 - `AI` (Workers AI), `AGENT` (Durable Object `SupportAgent`), `DB` (D1 `horizontes_bot_db`), `KB` (Vectorize `horizontes_bot_kb`), `CATALOG` (R2 `horizontes-bot-catalog`). Cron diario `0 3 * * *` (purga mensajes de más de 90 días).

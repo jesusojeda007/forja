@@ -158,4 +158,21 @@ export const manychatAdapter: ChannelAdapter = {
       });
     }
   },
+
+  async sendImage({ channelUserId, url: imageUrl, caption }, env: Env) {
+    const apiKey = env.MANYCHAT_API_KEY;
+    if (!apiKey) throw new Error("MANYCHAT_API_KEY not set");
+    const contentType = env.MANYCHAT_CONTENT_TYPE ?? "instagram";
+    const send = (messages: unknown[]) =>
+      fetch(`${MANYCHAT_API}/sending/sendContent`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subscriber_id: channelUserId,
+          data: { version: "v2", content: { type: contentType, messages } },
+        }),
+      });
+    await send([{ type: "image", url: imageUrl }]);
+    if (caption) await send([{ type: "text", text: caption }]);
+  },
 };

@@ -7,10 +7,15 @@ import { snoozeUserTool } from "./snoozeUser";
 import { captureLeadTool } from "./captureLead";
 import { scheduleAppointmentTool } from "./scheduleAppointment";
 import { catalogQueryTool } from "./catalogQuery";
+import { sendPaymentQrTool } from "./sendPaymentQr";
+import type { ChannelId } from "../channels/shared";
 
 export interface ToolContext {
   env: Env;
   getConversationId: () => string | null;
+  /** Canal/usuario activos de la conversación (para tools que envían media). */
+  getChannel: () => ChannelId | null;
+  getChannelUserId: () => string | null;
 }
 
 export function buildTools(ctx: ToolContext) {
@@ -25,6 +30,9 @@ export function buildTools(ctx: ToolContext) {
     snoozeUser: snoozeUserTool(ctx.env, ctx.getConversationId),
     captureLead: captureLeadTool(ctx.env, ctx.getConversationId),
     scheduleAppointment: scheduleAppointmentTool(ctx.env, ctx.getConversationId),
+    // El QR de pago no gatea a Pro: es la herramienta de cierre de venta del
+    // nicho tienda y no requiere ningún servicio externo de Forja.
+    sendPaymentQr: sendPaymentQrTool(ctx.env, ctx.getConversationId, ctx.getChannel, ctx.getChannelUserId),
   };
 
   // Pro tier additions

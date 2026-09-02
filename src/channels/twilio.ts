@@ -57,4 +57,26 @@ export const twilioAdapter: ChannelAdapter = {
       });
     }
   },
+
+  async sendImage({ channelUserId, url: imageUrl, caption }, env: Env) {
+    const sid = env.TWILIO_ACCOUNT_SID;
+    const tok = env.TWILIO_AUTH_TOKEN;
+    const from = env.TWILIO_WA_FROM;
+    if (!sid || !tok || !from) throw new Error("Twilio credentials missing");
+    const body = new URLSearchParams({
+      From: `whatsapp:${from}`,
+      To: `whatsapp:${channelUserId}`,
+      // Twilio exige Body aunque vaya vacío cuando hay media.
+      Body: caption ?? "",
+      MediaUrl: imageUrl,
+    });
+    await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${btoa(`${sid}:${tok}`)}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    });
+  },
 };

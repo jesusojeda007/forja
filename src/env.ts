@@ -21,9 +21,10 @@ export interface Env {
   // re-etiqueta el dashboard, aporta el playbook del giro y sus columnas.
   // Ausente/desconocido → pack genérico (comportamiento actual). Ver src/niches/.
   BOT_NICHE?: string;
-  // Pestañas del panel /admin que no aplican a este negocio (ej. "tickets" para
-  // una tienda sin mesa de soporte formal). Ids de NAV en admin/views/layout.ts,
-  // separados por coma. Ausente = todas visibles (comportamiento actual).
+  // Pestañas del panel /admin que no aplican a este negocio (ej. "campanas" para
+  // una tienda que no hace marketing). Ids de NAV en admin/views/layout.ts,
+  // separados por coma. Se SUMA a las que ya oculta el pack de BOT_NICHE
+  // (hiddenTabs). Ausente = solo las del pack (o todas si no hay pack).
   DISABLED_TABS?: string;
   // LLM provider for the chat brain: "anthropic" (default) | "openai".
   // If unset and only OPENAI_API_KEY is present, auto-selects "openai".

@@ -295,4 +295,26 @@ export default {
       console.error("copiloto:", e);
     }
   },
+
+  // Pagos por QR (fase 2): el dueño rutea el correo de notificaciones de su
+  // banco a este Worker (Cloudflare Email Routing → Send to a Worker). Aquí
+  // solo extraemos el texto y lo dejamos al conciliador; cualquier error se
+  // loguea — un correo que no se puede procesar NO debe rechazarse (vendría
+  // el bounce y el banco desactivaría el aviso).
+  async email(message, env) {
+    try {
+      const raw = await new Response(message.raw).text();
+      const { extractEmailText } = await import("./payments/email-text");
+      const { handlePaymentEmail } = await import("./payments/reconcile");
+      const result = await handlePaymentEmail(env, {
+        from: message.from,
+        to: message.to,
+        subject: message.headers.get("subject") ?? "",
+        text: extractEmailText(raw),
+      });
+      console.log(`[payments] email ${message.from}: ${result.resultado}`);
+    } catch (e) {
+      console.error("[payments] email handler:", e);
+    }
+  },
 } satisfies ExportedHandler<Env>;

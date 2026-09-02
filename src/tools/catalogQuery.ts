@@ -1,9 +1,9 @@
 import { tool } from "ai";
 import { z } from "zod";
 import type { Env } from "../env";
-import { catalog } from "../../member/config.local";
+import { loadCatalog } from "../catalog/source";
 
-export function catalogQueryTool(_env: Env) {
+export function catalogQueryTool(env: Env) {
   return tool({
     description:
       "Busca productos en el catálogo del negocio por nombre o keyword. Devuelve hasta 5 matches con precio.",
@@ -12,6 +12,7 @@ export function catalogQueryTool(_env: Env) {
     }),
     execute: async ({ query }) => {
       const q = query.toLowerCase().trim();
+      const catalog = await loadCatalog(env);
       const matches = catalog
         .filter(
           (p) =>

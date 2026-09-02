@@ -211,4 +211,29 @@ export const whatsappAdapter: ChannelAdapter = {
       }
     }
   },
+
+  async sendImage({ channelUserId, url: imageUrl, caption }, env: Env) {
+    const phoneId = env.WHATSAPP_PHONE_NUMBER_ID;
+    const token = env.WHATSAPP_ACCESS_TOKEN;
+    if (!phoneId || !token) {
+      throw new Error("WhatsApp Cloud: falta WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN.");
+    }
+    // `link` exige que Meta pueda hacer fetch de la URL — por eso el QR se
+    // sirve público desde el propio Worker.
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: channelUserId,
+        type: "image",
+        image: { link: imageUrl, caption },
+      }),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(`whatsapp sendImage ${res.status}: ${errBody}`);
+    }
+  },
 };

@@ -15,4 +15,5 @@ export const generico: NichePack = {
   playbook: "",
   defaultTone: "",
   kbDocs: [],
+  hiddenTabs: [],
 };

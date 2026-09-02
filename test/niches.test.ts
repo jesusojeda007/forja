@@ -19,6 +19,40 @@ describe("getNiche", () => {
 
   it("normaliza mayúsculas/espacios al resolver el pack", () => {
     expect(getNiche(envWith("  GENERICO ")).id).toBe("generico");
+    expect(getNiche(envWith("  TIENDA ")).id).toBe("tienda");
+  });
+});
+
+describe("pack tienda", () => {
+  it("resuelve el pack con su re-etiquetado y playbook", () => {
+    const n = getNiche(envWith("tienda"));
+    expect(n.id).toBe("tienda");
+    expect(n.navLabel).toBe("Interesados");
+    expect(n.recordSingular).toBe("Interesado");
+    expect(n.statusLabels.sold).toBe("Compró");
+    expect(n.columns.map((c) => c.key)).toEqual(["producto", "monto"]);
+    expect(n.playbook).toContain("<niche_playbook>");
+    expect(n.hiddenTabs).toContain("tickets");
+  });
+
+  it("inyecta el playbook del nicho al prompt", () => {
+    const env = envWith("tienda");
+    const prompt = systemPromptFromEnv(env, ["searchKb"], "ctx", getNiche(env).playbook);
+    expect(prompt).toContain("<niche_playbook>");
+  });
+
+  it("nav: dice 'Interesados' y oculta tickets por defecto del pack", () => {
+    const html = layout({ title: "T", activeTab: "leads", body: "x", env: envWith("tienda") });
+    expect(html).toContain("Interesados");
+    expect(html).toContain('href="/admin/leads"');
+    expect(html).not.toContain('href="/admin/tickets"');
+  });
+
+  it("DISABLED_TABS se suma a las ocultas por el pack", () => {
+    const env = { ...envWith("tienda"), DISABLED_TABS: "campanas" } as unknown as Env;
+    const html = layout({ title: "T", activeTab: "leads", body: "x", env });
+    expect(html).not.toContain('href="/admin/tickets"');
+    expect(html).not.toContain('href="/admin/campanas"');
   });
 });
 

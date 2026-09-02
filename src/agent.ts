@@ -264,6 +264,8 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     const tools = buildTools({
       env: this.env,
       getConversationId: () => convId,
+      getChannel: () => (this.state.channel as ChannelId) ?? null,
+      getChannelUserId: () => this.state.channelUserId ?? null,
     });
     const toolNames = Object.keys(tools);
 

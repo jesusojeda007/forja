@@ -171,4 +171,29 @@ export const metaAdapter: ChannelAdapter = {
       }
     }
   },
+
+  async sendImage({ channel, channelUserId, url: imageUrl, caption }, env: Env) {
+    // FB/IG no llevan caption en el attachment: la imagen va sola y el texto,
+    // como mensaje aparte.
+    const useIG = channel === "instagram" && !!env.INSTAGRAM_ACCESS_TOKEN;
+    const base = useIG ? "https://graph.instagram.com" : "https://graph.facebook.com";
+    const token = useIG ? env.INSTAGRAM_ACCESS_TOKEN : env.META_PAGE_ACCESS_TOKEN;
+    if (!token) {
+      throw new Error("Meta: falta INSTAGRAM_ACCESS_TOKEN (IG Login) o META_PAGE_ACCESS_TOKEN (Messenger).");
+    }
+    const node = useIG ? await instagramSenderId(token) : "me";
+    const url = `${base}/${GRAPH_VERSION}/${node}/messages`;
+    const send = (message: Record<string, unknown>) =>
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ recipient: { id: channelUserId }, message }),
+      });
+    const img = await send({ attachment: { type: "image", payload: { url: imageUrl } } });
+    if (!img.ok) {
+      const errBody = await img.text().catch(() => "");
+      console.error(`meta sendImage ${img.status} ${useIG ? "IG" : "FB"}: ${errBody}`);
+    }
+    if (caption) await send({ text: caption });
+  },
 };

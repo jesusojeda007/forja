@@ -203,3 +203,41 @@ CREATE TABLE IF NOT EXISTS template_sends (
   UNIQUE (campaign_key, conversation_id)
 );
 CREATE INDEX IF NOT EXISTS idx_template_sends_time ON template_sends(sent_at);
+
+-- Pagos por QR (flujo boliviano): el bot registra el intento cuando envía el
+-- QR con monto (tool sendPaymentQr). El correo de notificación del banco
+-- (Email Routing → handler email() del Worker) confirma el match por monto y
+-- ventana de tiempo. Forja no mueve dinero: solo concilia y marca el lead.
+-- status: pendiente | confirmado. confirmed_by: de qué correo salió la confirmación.
+CREATE TABLE IF NOT EXISTS payments (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT,
+  lead_id TEXT,
+  monto REAL NOT NULL,
+  referencia TEXT,
+  status TEXT NOT NULL DEFAULT 'pendiente',
+  created_at INTEGER NOT NULL,
+  confirmed_at INTEGER,
+  confirmed_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status, created_at);
+
+-- Log anti-reproceso: el mismo correo del banco no debe conciliar dos veces
+-- (Email Routing puede reintentar la entrega). El hash es del contenido.
+-- resultado: confirmado | sin_match | ambiguo | ignorado
+CREATE TABLE IF NOT EXISTS payment_email_log (
+  hash TEXT PRIMARY KEY,
+  monto REAL,
+  banco TEXT,
+  resultado TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+
+-- Snapshot del catálogo por URL (settings.catalog_source_url). Se refresca
+-- lazy con TTL y sirve de fallback si la fuente cae (ver src/catalog/source.ts).
+CREATE TABLE IF NOT EXISTS catalog_cache (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  source_url TEXT NOT NULL,
+  items_json TEXT NOT NULL,
+  fetched_at INTEGER NOT NULL
+);

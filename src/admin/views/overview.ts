@@ -106,7 +106,7 @@ export async function renderOverview(env: Env): Promise<string> {
   const activityMax = Math.max(...activityDays.map((d) => d.msgs), 1);
 
   // --- Estado del agente ----------------------------------------------------------
-  const toolNames = Object.keys(buildTools({ env, getConversationId: () => null }));
+  const toolNames = Object.keys(buildTools({ env, getConversationId: () => null, getChannel: () => null, getChannelUserId: () => null }));
   const agentCfg = await resolveAgentConfig(env, toolNames);
   const kbDocs = await new KbDocsRepo(db).list();
   const totalKbDocs = kbDocs.length + FIXTURE_CHUNKS.length;

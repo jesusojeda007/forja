@@ -471,6 +471,9 @@ adminApp.post("/config", async (c) => {
     SETTING_KEYS.businessContext,
     SETTING_KEYS.systemPromptOverride,
     SETTING_KEYS.escalationKeywords,
+    SETTING_KEYS.paymentQrUrl,
+    SETTING_KEYS.paymentInstructions,
+    SETTING_KEYS.catalogSourceUrl,
   ];
   for (const key of textKeys) {
     const raw = form.get(key);
