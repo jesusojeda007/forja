@@ -8,6 +8,9 @@ import { spa } from "./spa";
 import { gimnasio } from "./gimnasio";
 import { clinica } from "./clinica";
 import { dentista } from "./dentista";
+import { restaurante } from "./restaurante";
+import { cafeteria } from "./cafeteria";
+import { panaderia } from "./panaderia";
 
 export type { NichePack, NicheColumn } from "./types";
 
@@ -21,6 +24,9 @@ const PACKS: Record<string, NichePack> = {
   gimnasio,
   clinica,
   dentista,
+  restaurante,
+  cafeteria,
+  panaderia,
 };
 
 /** Resuelve el pack activo desde BOT_NICHE. Nicho ausente/desconocido → genérico. */
