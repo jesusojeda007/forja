@@ -455,6 +455,19 @@ adminApp.post("/config/qr-upload", async (c) => {
   }
 });
 
+// "Enviar reporte de prueba ahora": arma y manda un reporte al dueño de
+// inmediato, con una period_key propia para no consumir la del reporte real.
+adminApp.post("/config/reporte-test", async (c) => {
+  try {
+    const { runReport } = await import("../reportes/run");
+    const r = await runReport(c.env, { force: true, forceCadence: "semanal" });
+    return c.redirect(`/admin/config?reporte=${r.sent ? "enviado" : "sincanal"}`);
+  } catch (e) {
+    console.error("[reportes] prueba falló:", e);
+    return c.redirect("/admin/config?reporte=error");
+  }
+});
+
 // Prueba de la config BYO-LLM guardada: un generateText mínimo con el modelo
 // resuelto (settings > env). Redirige de vuelta con el resultado en la query.
 adminApp.get("/config/llm-test", async (c) => {
@@ -514,6 +527,11 @@ adminApp.post("/config", async (c) => {
   }
   if (form.get("noshows_present") !== null) {
     await repo.set(SETTING_KEYS.noshows, form.get(SETTING_KEYS.noshows) === "on" ? "on" : "off");
+  }
+  const reportesRaw = form.get(SETTING_KEYS.reportes);
+  if (reportesRaw !== null) {
+    const v = String(reportesRaw);
+    await repo.set(SETTING_KEYS.reportes, ["semanal", "diario"].includes(v) ? v : "off");
   }
 
   // BYO-LLM: proveedor y modelo se guardan tal cual (allow-list de valores).

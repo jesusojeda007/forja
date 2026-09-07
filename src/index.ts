@@ -329,6 +329,9 @@ export default {
     // cada cita + mensaje de recuperación a los no-shows silenciosos.
     const { runNoShows } = await import("./noshows/run");
     await runNoShows(env).catch((e) => console.error("noshows:", e));
+    // Reportes automáticos (superpoder, opt-in): resumen semanal/diario al dueño.
+    const { runReport } = await import("./reportes/run");
+    await runReport(env).catch((e) => console.error("reportes:", e));
     // Modo COPILOTO (autonomy_level="copilot"): auto-aplica las mejoras seguras
     // detectadas (lecciones + KB sin huecos). Lo delicado espera al dueño.
     try {

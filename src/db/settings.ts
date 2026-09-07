@@ -33,6 +33,10 @@ export const SETTING_KEYS = {
   // el cliente no dio señales tras la hora de la cita, un mensaje de
   // recuperación. Ver src/noshows/run.ts.
   noshows: "noshows",
+  // Reportes automáticos (superpoder): "" / "off" (default) | "semanal" (los
+  // lunes) | "diario". Un resumen del período al dueño por Telegram + email.
+  // Ver src/reportes/run.ts.
+  reportes: "reportes",
   // BYO-LLM (dashboard "Modelo de IA"): the owner plugs their own provider,
   // API key and/or concrete model. Empty = the instance's env defaults.
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai

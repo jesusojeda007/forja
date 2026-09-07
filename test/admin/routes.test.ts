@@ -364,6 +364,30 @@ describe("admin routes — config save (POST /config)", () => {
     expect(settingsWrites(offLog)[SETTING_KEYS.noshows]).toBe("off");
   });
 
+  it("reportes: el select guarda un valor válido y normaliza lo inválido a 'off'", async () => {
+    const okLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ [SETTING_KEYS.reportes]: "semanal" }),
+      }),
+      makeEnv(makeStubDb([], okLog)),
+    );
+    expect(settingsWrites(okLog)[SETTING_KEYS.reportes]).toBe("semanal");
+
+    const badLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ [SETTING_KEYS.reportes]: "cada-hora" }),
+      }),
+      makeEnv(makeStubDb([], badLog)),
+    );
+    expect(settingsWrites(badLog)[SETTING_KEYS.reportes]).toBe("off");
+  });
+
   it("blindaje: un form de otra sección (sin marcador) no toca el setting", async () => {
     const runLog: Array<{ sql: string; params: unknown[] }> = [];
     await adminApp.fetch(

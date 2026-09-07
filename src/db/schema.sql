@@ -172,6 +172,14 @@ CREATE TABLE IF NOT EXISTS appointments (
 CREATE INDEX IF NOT EXISTS idx_appointments_start ON appointments(start_ts);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status, start_ts);
 
+-- Reportes automáticos (superpoder): un resumen del período que se le manda al
+-- dueño (Telegram DM + email). period_key es el candado anti-doble-envío:
+-- "2026-W37" para el semanal, "2026-09-08" para el diario.
+CREATE TABLE IF NOT EXISTS report_sends (
+  period_key TEXT PRIMARY KEY,
+  sent_at INTEGER NOT NULL
+);
+
 -- Per-customer memory extracted by the insights analyzer. Injected into the
 -- system context when the same customer writes again.
 CREATE TABLE IF NOT EXISTS customer_facts (

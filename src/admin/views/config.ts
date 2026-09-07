@@ -312,6 +312,24 @@ export function renderConfig(
             <span class="text-dim text-[11.5px]">El bot recuerda cada cita la noche anterior ("¿sigue en pie?") y, si alguien no llega ni avisa, le escribe para reagendar. Necesita que agendes las citas con la herramienta de calendario del bot.</span>
           </span>
         </label>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span class="font-display font-semibold text-[13px] text-cream">Reportes automáticos</span>
+          <span class="text-dim text-[11.5px]">Un resumen de tus números (chats, prospectos, temas, horas ahorradas) que te llega solo por Telegram y correo.</span>
+          <select name="${SETTING_KEYS.reportes}" style="${SELECT_STYLE}">
+            ${["off", "semanal", "diario"]
+              .map(
+                (v) =>
+                  `<option value="${v}" ${(settings[SETTING_KEYS.reportes] || "off") === v ? "selected" : ""}>${
+                    { off: "Apagado", semanal: "Semanal (lunes)", diario: "Diario" }[v]
+                  }</option>`,
+              )
+              .join("")}
+          </select>
+          <button type="submit" formaction="/admin/config/reporte-test" formmethod="POST"
+                  class="text-[11px]" style="align-self:flex-start;border:1px solid var(--line);color:var(--cream);padding:5px 10px;cursor:pointer;background:none;margin-top:2px">
+            Enviar reporte de prueba ahora
+          </button>
+        </div>
         <fieldset style="display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0">
           <legend class="font-display font-semibold text-[13.5px] text-cream">Avanzado · prompt del agente</legend>
           ${renderTextArea({
