@@ -11,6 +11,10 @@ import { dentista } from "./dentista";
 import { restaurante } from "./restaurante";
 import { cafeteria } from "./cafeteria";
 import { panaderia } from "./panaderia";
+import { inmobiliaria } from "./inmobiliaria";
+import { hoteleria } from "./hoteleria";
+import { coach } from "./coach";
+import { crm } from "./crm";
 
 export type { NichePack, NicheColumn } from "./types";
 
@@ -27,6 +31,10 @@ const PACKS: Record<string, NichePack> = {
   restaurante,
   cafeteria,
   panaderia,
+  inmobiliaria,
+  hoteleria,
+  coach,
+  crm,
 };
 
 /** Resuelve el pack activo desde BOT_NICHE. Nicho ausente/desconocido → genérico. */
