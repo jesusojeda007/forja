@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createTestMiniflare } from "../helpers/miniflareSetup";
 import { Db } from "../../src/db/client";
 import { ConversationsRepo } from "../../src/db/conversations";
-import { LeadsRepo } from "../../src/db/leads";
+import { LeadsRepo, leadMetadata } from "../../src/db/leads";
 import { captureLeadTool } from "../../src/tools/captureLead";
 
 let env: any;
@@ -39,5 +39,30 @@ describe("captureLeadTool", () => {
     const list = await leads.list(10);
     expect(list).toHaveLength(1);
     expect(list[0].intent).toBe("Corte + barba 5pm");
+  });
+
+  it("guarda los campos del nicho en metadata para que el panel los muestre", async () => {
+    const tool = captureLeadTool(env, () => convId);
+    await tool.execute!(
+      {
+        name: "María",
+        contact: "+5215512345",
+        intent: "Quiere corte + barba",
+        metadata: { servicio: "Corte + barba", fecha_cita: "2026-09-10 17:00" },
+      },
+      {} as any,
+    );
+    const list = await leads.list(10);
+    expect(leadMetadata(list[0])).toEqual({
+      servicio: "Corte + barba",
+      fecha_cita: "2026-09-10 17:00",
+    });
+  });
+
+  it("sin metadata, el lead queda sin metadata (no rompe)", async () => {
+    const tool = captureLeadTool(env, () => convId);
+    await tool.execute!({ intent: "solo preguntó el horario" }, {} as any);
+    const list = await leads.list(10);
+    expect(list[0].metadata).toBeNull();
   });
 });

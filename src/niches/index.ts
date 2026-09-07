@@ -2,6 +2,10 @@ import type { Env } from "../env";
 import type { NichePack } from "./types";
 import { generico } from "./generico";
 import { tienda } from "./tienda";
+import { barberia } from "./barberia";
+import { salon } from "./salon";
+import { spa } from "./spa";
+import { gimnasio } from "./gimnasio";
 
 export type { NichePack, NicheColumn } from "./types";
 
@@ -9,6 +13,10 @@ export type { NichePack, NicheColumn } from "./types";
 const PACKS: Record<string, NichePack> = {
   generico,
   tienda,
+  barberia,
+  salon,
+  spa,
+  gimnasio,
 };
 
 /** Resuelve el pack activo desde BOT_NICHE. Nicho ausente/desconocido → genérico. */
