@@ -71,7 +71,7 @@ describe("chunkDelayMs", () => {
 
 describe("pickAdapter", () => {
   it("maps each channel to an adapter exposing sendReply", () => {
-    for (const ch of ["telegram", "manychat", "twilio"] as const) {
+    for (const ch of ["telegram", "manychat", "twilio", "zernio"] as const) {
       const adapter = pickAdapter(ch);
       expect(typeof adapter.sendReply).toBe("function");
       expect(typeof adapter.parseIncoming).toBe("function");

@@ -6,9 +6,10 @@
 > y recién entonces abres la guía específica del método. No decidas por él sin
 > explicarle el trade-off — la decisión es del dueño del negocio.
 
-El bot recibe mensajes por **4 puertas** (webhooks ya desplegados en su Worker):
+El bot recibe mensajes por estas **puertas** (webhooks ya desplegados en su Worker):
 `/webhooks/telegram`, `/webhooks/twilio`, `/webhooks/meta`, `/webhooks/manychat`,
-`/webhooks/whatsapp` (WhatsApp Cloud API oficial).
+`/webhooks/whatsapp` (WhatsApp Cloud API oficial), `/webhooks/zernio` (bandeja
+unificada Zernio).
 Cada red social se puede conectar por una de estas puertas. Un mismo canal (ej.
 Instagram) tiene **más de un método**; tu trabajo es que el miembro elija el que
 le conviene.
@@ -20,9 +21,10 @@ le conviene.
 | Red del cliente | Métodos posibles | Puerta (webhook) | Llaves que pide |
 |---|---|---|---|
 | **WhatsApp** | Cloud API oficial · Twilio · ManyChat | `/webhooks/whatsapp` · `/webhooks/twilio` · `/webhooks/manychat` | Cloud API: `WHATSAPP_PHONE_NUMBER_ID`+`WHATSAPP_ACCESS_TOKEN`+`WHATSAPP_VERIFY_TOKEN`+`WHATSAPP_APP_SECRET` — Twilio: `TWILIO_ACCOUNT_SID`+`TWILIO_AUTH_TOKEN`+`TWILIO_WA_FROM` — ManyChat: `MANYCHAT_API_KEY` |
-| **Instagram DMs** | Meta oficial · ManyChat | `/webhooks/meta` · `/webhooks/manychat` | Meta: `META_PAGE_ACCESS_TOKEN`+`META_VERIFY_TOKEN`+`META_APP_SECRET` — ManyChat: `MANYCHAT_API_KEY` |
-| **Facebook Messenger** | Meta oficial · ManyChat | `/webhooks/meta` · `/webhooks/manychat` | igual que Instagram Meta oficial |
-| **Telegram** | BotFather (único) | `/webhooks/telegram` | `TELEGRAM_BOT_TOKEN` |
+| **Instagram DMs** | Meta oficial · ManyChat · Zernio | `/webhooks/meta` · `/webhooks/manychat` · `/webhooks/zernio` | Meta: `META_PAGE_ACCESS_TOKEN`+`META_VERIFY_TOKEN`+`META_APP_SECRET` — ManyChat: `MANYCHAT_API_KEY` — Zernio: `ZERNIO_API_KEY`+`ZERNIO_WEBHOOK_SECRET` |
+| **Facebook Messenger** | Meta oficial · ManyChat · Zernio | `/webhooks/meta` · `/webhooks/manychat` · `/webhooks/zernio` | igual que Instagram Meta oficial — Zernio: `ZERNIO_API_KEY`+`ZERNIO_WEBHOOK_SECRET` |
+| **Telegram** | BotFather · Zernio | `/webhooks/telegram` · `/webhooks/zernio` | `TELEGRAM_BOT_TOKEN` — Zernio: `ZERNIO_API_KEY`+`ZERNIO_WEBHOOK_SECRET` |
+| **Varias redes con una cuenta** | Zernio (bandeja unificada) | `/webhooks/zernio` | `ZERNIO_API_KEY`+`ZERNIO_WEBHOOK_SECRET` |
 
 > **Recomendación de arranque para no técnicos:** empezar por **Telegram** (5 min,
 > gratis, sin verificaciones) para ver el bot vivo de inmediato, y en paralelo
@@ -108,6 +110,30 @@ miembro quiere las dos, se configuran juntas en `meta-oficial.md`.
 BotFather. Gratis, sin verificaciones, ~5 min. Es el mejor "primer canal" para
 que el miembro vea el bot funcionando antes de pelear con WhatsApp/Meta. Guía en
 el sub-flujo de `configurar-mi-chatbot.md` (Paso 3.1).
+
+---
+
+## Zernio — bandeja unificada (canal ADICIONAL, no reemplaza los directos)
+
+**Proveedor unificado:** una sola cuenta de Zernio + un solo webhook
+(`/webhooks/zernio`) conecta Instagram, Messenger, WhatsApp, Telegram y más, con
+OAuth de un clic por red. También vende números de WhatsApp sin pelear con el
+setup de Meta.
+
+- **Pros:** conectas varias redes de una sin crear una app de Meta por cada una;
+  OAuth de un clic; comprar número de WhatsApp incluido; un par de llaves para
+  todo (`ZERNIO_API_KEY` + `ZERNIO_WEBHOOK_SECRET`).
+- **Contras:** **costo mensual** de Zernio encima de lo que cobre cada red;
+  dependes de su plataforma y sus add-ons (el inbox requiere el add-on de Inbox);
+  es un intermediario más entre el cliente y el bot.
+- **Cuándo ofrecerlo:** el miembro quiere IG + Messenger + WhatsApp + Telegram
+  juntos y no quiere el papeleo de Meta, o quiere comprar un número de WhatsApp
+  rápido. Para **una sola red**, los métodos directos (Meta oficial, WhatsApp
+  Cloud, Telegram BotFather) salen más baratos y con menos capas.
+- **No reemplaza** los canales directos: si ya tienes WhatsApp Cloud conectado,
+  Zernio se suma, no lo sustituye. Media de WhatsApp vía Zernio pasa por un proxy
+  de media firmado del propio Worker (igual que WhatsApp Cloud) — sin config extra.
+- Guía detallada: `zernio.md`.
 
 ---
 

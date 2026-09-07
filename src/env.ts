@@ -75,6 +75,11 @@ export interface Env {
   WHATSAPP_ACCESS_TOKEN?: string;     // token del system user / WABA (Bearer)
   WHATSAPP_VERIFY_TOKEN?: string;     // handshake GET del webhook (si falta, usa META_VERIFY_TOKEN)
   WHATSAPP_APP_SECRET?: string;       // firma X-Hub-Signature-256 (si falta, usa META_APP_SECRET)
+  // Zernio — proveedor unificado de bandeja (IG/Messenger/WhatsApp/Telegram/X…).
+  // Un solo webhook (/webhooks/zernio) y un solo canal desde la óptica del bot.
+  // El envío es a zernio.com/api/v1/inbox/conversations/<id>/messages (Bearer).
+  ZERNIO_API_KEY?: string;            // secret: API key de Zernio (sk_...); Bearer para enviar y para la media
+  ZERNIO_WEBHOOK_SECRET?: string;     // secret: firma X-Zernio-Signature (HMAC-SHA256 hex del cuerpo)
   XAI_API_KEY?: string;             // xAI (Grok) — proveedor LLM alterno (ver src/llm/provider.ts)
 
   // ── Cal.com (agenda real para scheduleAppointment) ───────────────────────

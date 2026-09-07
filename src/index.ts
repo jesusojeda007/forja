@@ -6,6 +6,7 @@ import { manychatAdapter } from "./channels/manychat";
 import { twilioAdapter } from "./channels/twilio";
 import { parseMetaEvents, verifyMetaSignature } from "./channels/meta";
 import { parseWhatsAppEvents, serveWhatsAppMedia } from "./channels/whatsapp";
+import { parseZernioEvent, verifyZernioSignature, serveZernioMedia } from "./channels/zernio";
 import { adminApp } from "./admin/routes";
 import { purgeOldMessages } from "./crons/purgeOldMessages";
 import { DAILY_CRON, isNightlyTick } from "./crons/schedule";
@@ -181,6 +182,42 @@ app.post("/webhooks/whatsapp", async (c) => {
 // media públicamente fetchable (para transcribe/vision) sin exponer el token.
 app.get("/webhooks/whatsapp/media/:id", (c) =>
   serveWhatsAppMedia(c.req.param("id"), c.req.query("exp") ?? null, c.req.query("sig") ?? null, c.env),
+);
+
+// --- Zernio (bandeja unificada: IG/Messenger/WhatsApp/Telegram/X…) ----------
+// POST = un evento por request, firmado con X-Zernio-Signature (HMAC-SHA256 hex
+// del cuerpo crudo). Fail-closed: sin firma válida (o sin ZERNIO_WEBHOOK_SECRET)
+// → 403. Solo procesamos `message.received` entrante; el resto se ignora con 200
+// para que Zernio no reintente.
+app.post("/webhooks/zernio", async (c) => {
+  const raw = await c.req.text();
+  const sig = c.req.header("x-zernio-signature");
+  const valid = await verifyZernioSignature(raw, sig, c.env.ZERNIO_WEBHOOK_SECRET ?? "");
+  if (!valid) return c.text("bad signature", 403);
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return c.text("bad json", 400);
+  }
+  const origin = c.env.DASHBOARD_BASE_URL || new URL(c.req.url).origin;
+  for (const msg of await parseZernioEvent(body as any, c.env, origin)) {
+    const doId = c.env.AGENT.idFromName(`${msg.channel}:${msg.channelUserId}`);
+    await c.env.AGENT.get(doId).ingest(msg);
+  }
+  return c.text("ok", 200);
+});
+
+// Proxy FIRMADO del media entrante de WhatsApp vía Zernio (URL autenticada que
+// expira). Mismo esquema que el de WhatsApp Cloud: HMAC + expiración, la API key
+// queda del lado del server.
+app.get("/webhooks/zernio/media", (c) =>
+  serveZernioMedia(
+    c.req.query("u") ?? null,
+    c.req.query("exp") ?? null,
+    c.req.query("sig") ?? null,
+    c.env,
+  ),
 );
 
 // Universal webhook LEARN endpoint. When learn mode is ON for `:channel`, this

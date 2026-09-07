@@ -47,6 +47,10 @@ function channelStatuses(env: Env): ChannelStatus[] {
     !has(env.WHATSAPP_VERIFY_TOKEN || env.META_VERIFY_TOKEN) && "WHATSAPP_VERIFY_TOKEN",
     !has(env.WHATSAPP_APP_SECRET || env.META_APP_SECRET) && "WHATSAPP_APP_SECRET",
   ].filter(Boolean) as string[];
+  const zernioMissing = [
+    !has(env.ZERNIO_API_KEY) && "ZERNIO_API_KEY",
+    !has(env.ZERNIO_WEBHOOK_SECRET) && "ZERNIO_WEBHOOK_SECRET",
+  ].filter(Boolean) as string[];
 
   return [
     {
@@ -103,6 +107,17 @@ function channelStatuses(env: Env): ChannelStatus[] {
       missing: manychatMissing,
       webhookPath: "/webhooks/manychat",
       howTo: "En ManyChat: External Request hacia la URL de abajo.",
+    },
+    {
+      id: "zernio",
+      name: "Zernio",
+      icon: "inbox",
+      desc: "Bandeja unificada: Instagram, Messenger, WhatsApp, Telegram y más con una sola cuenta.",
+      ok: zernioMissing.length === 0,
+      missing: zernioMissing,
+      webhookPath: "/webhooks/zernio",
+      howTo:
+        "En Zernio → Settings → Webhooks: apunta el endpoint a la URL de abajo, suscribe el evento message.received y guarda el secret. La API key va en Settings → API Keys.",
     },
   ];
 }

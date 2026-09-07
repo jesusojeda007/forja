@@ -13,6 +13,7 @@ export const CHANNEL_LABELS: Record<string, string> = {
   instagram: "Instagram",
   messenger: "Messenger",
   manychat: "ManyChat",
+  zernio: "Zernio",
 };
 
 export function channelLabel(channel: string | null | undefined): string {
@@ -43,6 +44,9 @@ export function configuredChannels(env: Env): ConfiguredChannel[] {
   }
   if (env.MANYCHAT_API_KEY) {
     out.push({ id: "manychat", label: "ManyChat", detail: "IG/FB vía ManyChat" });
+  }
+  if (env.ZERNIO_API_KEY) {
+    out.push({ id: "zernio", label: "Zernio", detail: "bandeja unificada" });
   }
   return out;
 }
