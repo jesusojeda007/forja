@@ -24,6 +24,10 @@ export interface AgentConfig {
   monthlyBudgetUsd?: number;
   /** BYO-LLM del dashboard (proveedor / API key / modelo). */
   llm: LlmOverrides;
+  /** Blindaje anti-invento activo (bloque de prompt estricto + chequeo post-generación). */
+  blindaje: boolean;
+  /** Contexto del negocio en crudo (fuentes confirmadas) — lo usa el chequeo de blindaje. */
+  businessContext: string;
 }
 
 /** Extract the BYO-LLM overrides from a settings snapshot. */
@@ -114,6 +118,8 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
   const disabledTools = parseCsvList(get(SETTING_KEYS.disabledTools));
   const enabledToolNames = toolNames.filter((n) => !disabledTools.includes(n));
 
+  const blindaje = get(SETTING_KEYS.blindaje) === "on";
+
   const systemPrompt =
     systemPromptOverride ??
     systemPromptFromEnv(env, enabledToolNames, businessContext, niche.playbook || undefined, {
@@ -122,6 +128,7 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
       botName,
       lessons,
       customInstructions,
+      blindaje,
     });
 
   const bufferSecondsRaw = get(SETTING_KEYS.bufferSeconds);
@@ -160,5 +167,7 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
     temperature,
     monthlyBudgetUsd,
     llm: llmOverridesFrom(settings),
+    blindaje,
+    businessContext,
   };
 }

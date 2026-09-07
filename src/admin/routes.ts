@@ -507,6 +507,12 @@ adminApp.post("/config", async (c) => {
     await repo.set(key, String(raw).trim());
   }
 
+  // Blindaje: checkbox. El form de esa sección lleva un marcador oculto para
+  // distinguir "desmarcado" (no llega el campo) de "otro form" (ni marcador).
+  if (form.get("blindaje_present") !== null) {
+    await repo.set(SETTING_KEYS.blindaje, form.get(SETTING_KEYS.blindaje) === "on" ? "on" : "off");
+  }
+
   // BYO-LLM: proveedor y modelo se guardan tal cual (allow-list de valores).
   const provRaw = form.get(SETTING_KEYS.llmProvider);
   if (provRaw !== null) {

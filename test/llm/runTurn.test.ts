@@ -10,14 +10,14 @@ vi.mock("ai", () => ({
 
 import { runLlmTurn } from "../../src/llm/runTurn";
 
-function streamOk(text: string) {
+function streamOk(text: string, steps: any[] = [{ toolCalls: [] }]) {
   async function* gen() {
     yield text;
   }
   return {
     textStream: gen(),
     usage: Promise.resolve({ inputTokens: 10, outputTokens: 4, cachedInputTokens: 0 }),
-    steps: Promise.resolve([{ toolCalls: [] }]),
+    steps: Promise.resolve(steps),
   };
 }
 
@@ -68,6 +68,28 @@ describe("runLlmTurn", () => {
     expect(r.toolCallsMade).toEqual([{ toolName: "searchKb", input: { query: "hola" } }]);
     expect(generateTextMock).toHaveBeenCalledTimes(1);
     expect(generateTextMock.mock.calls[0][0].messages).toEqual(ARGS.messages);
+  });
+
+  it("expone los resultados de las tools del turno (para el blindaje)", async () => {
+    const steps = [
+      {
+        toolCalls: [{ toolName: "searchKb", input: { query: "precio corte" } }],
+        toolResults: [
+          {
+            toolName: "searchKb",
+            output: { results: [{ title: "Precios", content: "Corte $150", score: 0.82 }] },
+          },
+        ],
+      },
+    ];
+    streamTextMock.mockImplementation(() => streamOk("son $150", steps));
+    const r = await runLlmTurn(ARGS);
+    expect(r.toolResultsMade).toEqual([
+      {
+        toolName: "searchKb",
+        output: { results: [{ title: "Precios", content: "Corte $150", score: 0.82 }] },
+      },
+    ]);
   });
 
   it("no usa generateText en un 429 — eso es failover de proveedor", async () => {

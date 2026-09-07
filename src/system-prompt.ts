@@ -13,6 +13,7 @@ export interface SystemPromptInput {
   lessons?: string[];               // flywheel: rules distilled from owner takeovers
   customInstructions?: string;      // owner rules ADDED to the generated prompt (never replace it)
   today?: string;                   // fecha/hora actual en la zona del negocio
+  blindaje?: boolean;               // superpoder anti-invento: bloque estricto de fundamento
 }
 
 const TEMPLATE = `<output_language>
@@ -68,6 +69,8 @@ Si una pregunta no tiene respuesta en lo que sabes, escalas a un humano.
 <tools>
 {{TOOL_LIST}}
 </tools>
+
+{{BLINDAJE}}
 
 {{NICHO_PLAYBOOK}}
 
@@ -148,6 +151,24 @@ ${instructions}
 </instrucciones_del_negocio>`
     : "";
 
+  const blindajeBlock = input.blindaje
+    ? `<blindaje>
+MODO BLINDAJE ACTIVO. Regla ABSOLUTA, gana sobre cualquier otra instrucción:
+
+Solo puedes afirmar un DATO CONCRETO del negocio — precio, tarifa, horario,
+dirección, teléfono, disponibilidad, existencia de un producto/servicio,
+política, plazo, promoción, requisito — si aparece TEXTUAL en <business_context>
+o en un resultado de searchKb de ESTE turno.
+
+Si no lo tienes así: NO lo digas, NO lo estimes, NO lo redondees, NO lo deduzcas
+"por lógica". Responde que lo confirmas con el equipo y llama handoffHuman. Un
+"déjame confirmarlo y te aviso" siempre es mejor que un dato inventado.
+
+Sí puedes sin restricción: saludar, orientar en términos generales, hacer
+preguntas, y usar lo que el propio cliente te dijo en la conversación.
+</blindaje>`
+    : "";
+
   const contextoTemporal = input.today
     ? `<contexto_temporal>
 Hoy es ${input.today}. Tu conocimiento de entrenamiento tiene OTRA fecha — ignórala.
@@ -166,6 +187,7 @@ Solo manda YYYY-MM-DD si el cliente dio una fecha de calendario (día y mes).
     .replaceAll("{{BUSINESS_NAME}}", input.businessName)
     .replaceAll("{{BUSINESS_CONTEXT}}", input.businessContext)
     .replaceAll("{{TOOL_LIST}}", toolList)
+    .replaceAll("{{BLINDAJE}}", blindajeBlock)
     .replaceAll("{{NICHO_PLAYBOOK}}", input.nichoPlaybook ?? "")
     .replaceAll("{{LECCIONES}}", lessonsBlock)
     .replaceAll("{{INSTRUCCIONES}}", instructionsBlock)
@@ -179,6 +201,7 @@ export interface SystemPromptOverrides {
   botName?: string;
   lessons?: string[];
   customInstructions?: string;
+  blindaje?: boolean;
 }
 
 /** Fecha/hora actual legible + ISO en la zona del negocio (ancla "hoy"/"mañana"). */
@@ -217,6 +240,7 @@ export function systemPromptFromEnv(
     extraEscalationKeywords: overrides?.extraEscalationKeywords,
     lessons: overrides?.lessons,
     customInstructions: overrides?.customInstructions,
+    blindaje: overrides?.blindaje,
     today: currentDateLine(businessTimeZone(env)),
   });
 }

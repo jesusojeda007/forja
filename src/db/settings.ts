@@ -23,6 +23,11 @@ export const SETTING_KEYS = {
   learnedLessons: "learned_lessons", // JSON array of rules distilled from owner takeovers
   twilioHandoffContentSid: "twilio_handoff_content_sid", // HSM del aviso de handoff (fallback del secret)
   autonomyLevel: "autonomy_level", // flywheel: manual (default) | copilot (auto-aplica lo seguro de noche)
+  // Blindaje anti-invento (superpoder): "" / "off" (default) | "on". Con "on" el
+  // prompt lleva un bloque estricto y, tras generar, un chequeo de fundamento
+  // verifica que la respuesta se apoye en el contexto del negocio o la KB antes
+  // de enviarla. Ver src/llm/blindajeCheck.ts.
+  blindaje: "blindaje",
   // BYO-LLM (dashboard "Modelo de IA"): the owner plugs their own provider,
   // API key and/or concrete model. Empty = the instance's env defaults.
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai

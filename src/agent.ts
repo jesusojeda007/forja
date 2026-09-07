@@ -349,6 +349,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     let cachedTokens = 0;
     let toolCallCount = 0;
     let toolCallsMade: { toolName: string; input: unknown }[] = [];
+    let toolResultsMade: { toolName: string; output: unknown }[] = [];
     let usedModelId = modelId;
 
     // Corre el loop del LLM con un modelo dado; deja los resultados en las vars.
@@ -369,6 +370,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       // Persist what the agent DID (not just what it said): tool name + input,
       // feeding the dashboard's thread chips, stats and the Mi Agente counters.
       toolCallsMade = turn.toolCallsMade;
+      toolResultsMade = turn.toolResultsMade;
     };
 
     try {
@@ -420,6 +422,25 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       }
     }
 
+    const llmFailed = !assistantText || assistantText.startsWith("Algo falló de mi lado");
+    const calledHandoff = toolCallsMade.some((c) => c.toolName === "handoffHuman");
+
+    // Blindaje anti-invento: si el dueño lo activó y el bot no escaló ya,
+    // verifica que la respuesta se apoye en fuentes reales antes de enviarla.
+    if (cfg.blindaje && !llmFailed && !calledHandoff) {
+      const { runBlindajeGuard } = await import("./blindaje/guard");
+      const guard = await runBlindajeGuard({
+        env: this.env,
+        llm: cfg.llm,
+        conversationId: convId,
+        reply: assistantText,
+        businessContext: cfg.businessContext,
+        toolResults: toolResultsMade,
+        language: this.env.BOT_LANGUAGE,
+      });
+      assistantText = guard.text;
+    }
+
     // Persist assistant message (with usage + model_used + tool calls)
     await msgs.append(convId, "assistant", assistantText, {
       modelUsed: usedModelId,
@@ -429,10 +450,14 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       toolCalls: toolCallsMade.length > 0 ? toolCallsMade : undefined,
     });
 
-    // Update state for next turn
+    // Update state for next turn. lastSearchKbScore alimenta el selector de
+    // modelo (un score bajo sube al modelo inteligente el siguiente turno).
+    const { topKbScore } = await import("./blindaje/guard");
+    const kbScore = topKbScore(toolResultsMade);
     this.setState({
       ...this.state,
       toolCallsInLast2Turns: toolCallCount,
+      lastSearchKbScore: kbScore ?? this.state.lastSearchKbScore,
     });
 
     // Chunk + send via the channel adapter

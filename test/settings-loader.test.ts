@@ -192,3 +192,37 @@ describe("resolveAgentConfig — learned lessons (flywheel)", () => {
     expect(cfg.systemPrompt).not.toContain("<lecciones_aprendidas>");
   });
 });
+
+describe("resolveAgentConfig — blindaje", () => {
+  it("default: blindaje apagado y sin bloque en el prompt", async () => {
+    const cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(false);
+    expect(cfg.systemPrompt).not.toContain("<blindaje>");
+  });
+
+  it("con blindaje=on: cfg.blindaje true y el bloque <blindaje> entra al prompt", async () => {
+    await repo.set(SETTING_KEYS.blindaje, "on");
+    const cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(true);
+    expect(cfg.systemPrompt).toContain("<blindaje>");
+    expect(cfg.systemPrompt).toContain("handoffHuman");
+  });
+
+  it("valor distinto de 'on' se trata como apagado", async () => {
+    await repo.set(SETTING_KEYS.blindaje, "off");
+    let cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(false);
+
+    await repo.set(SETTING_KEYS.blindaje, "1");
+    cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(false);
+  });
+
+  it("un system_prompt_override manual NO lleva bloque de blindaje", async () => {
+    await repo.set(SETTING_KEYS.blindaje, "on");
+    await repo.set(SETTING_KEYS.systemPromptOverride, "MI PROMPT");
+    const cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(true); // el chequeo post-generación igual corre
+    expect(cfg.systemPrompt).toBe("MI PROMPT");
+  });
+});

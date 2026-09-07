@@ -294,6 +294,15 @@ export function renderConfig(
           value: settings[SETTING_KEYS.escalationKeywords] ?? "",
           placeholder: "queja, reembolso, hablar con alguien",
         })}
+        <input type="hidden" name="blindaje_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.blindaje}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.blindaje] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Blindaje anti-invento</span>
+            <span class="text-dim text-[11.5px]">El bot solo afirma datos (precios, horarios, disponibilidad, políticas) que estén en tu información o tu base de conocimiento. Si no lo sabe, lo confirma contigo en vez de improvisar. Verifica cada respuesta antes de enviarla — un poco más lenta y con un costo mínimo por mensaje.</span>
+          </span>
+        </label>
         <fieldset style="display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0">
           <legend class="font-display font-semibold text-[13.5px] text-cream">Avanzado · prompt del agente</legend>
           ${renderTextArea({

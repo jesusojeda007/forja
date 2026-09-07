@@ -316,6 +316,43 @@ describe("admin routes — config save (POST /config)", () => {
     expect(writes[SETTING_KEYS.escalationKeywords]).toBe("queja, reembolso");
   });
 
+  it("blindaje: marcado guarda 'on', el marcador sin checkbox guarda 'off'", async () => {
+    const onLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ blindaje_present: "1", [SETTING_KEYS.blindaje]: "on" }),
+      }),
+      makeEnv(makeStubDb([], onLog)),
+    );
+    expect(settingsWrites(onLog)[SETTING_KEYS.blindaje]).toBe("on");
+
+    const offLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ blindaje_present: "1" }),
+      }),
+      makeEnv(makeStubDb([], offLog)),
+    );
+    expect(settingsWrites(offLog)[SETTING_KEYS.blindaje]).toBe("off");
+  });
+
+  it("blindaje: un form de otra sección (sin marcador) no toca el setting", async () => {
+    const runLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ [SETTING_KEYS.paymentInstructions]: "Paga al recoger" }),
+      }),
+      makeEnv(makeStubDb([], runLog)),
+    );
+    expect(settingsWrites(runLog)[SETTING_KEYS.blindaje]).toBeUndefined();
+  });
+
   it("falls back to the first option for an unknown card value", async () => {
     const runLog: Array<{ sql: string; params: unknown[] }> = [];
     const env = makeEnv(makeStubDb([], runLog));
