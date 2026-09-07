@@ -1,4 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+
+// Este repo tiene member/config.local.ts con datos reales (Tamy Store, timezone
+// America/La_Paz) — se mockea sin timezone para probar el fallback genérico
+// (env > member/config > DEFAULT_TZ) sin acoplarse a qué negocio esté instalado.
+vi.mock("../../member/config.local", () => ({ memberConfig: {} }));
+
 import {
   calcomConfigured,
   calcomTimeZone,
