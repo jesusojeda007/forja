@@ -147,6 +147,31 @@ CREATE TABLE IF NOT EXISTS followup_sends (
   sent_at INTEGER NOT NULL
 );
 
+-- Citas reservadas por el bot (tool scheduleAppointment). Cal.com es la fuente
+-- de verdad del calendario, pero necesitamos un registro local para el
+-- superpoder "Recupera no-shows": recordatorio la noche anterior y, si el
+-- cliente no dio señales tras la hora de la cita, un mensaje de recuperación.
+-- status: booked (recién reservada) | reminded (ya se le recordó) |
+-- recovered (ya se le mandó el mensaje de recuperación). Cada transición de
+-- status es el candado anti-doble-envío (como followup_sends).
+CREATE TABLE IF NOT EXISTS appointments (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT,
+  channel TEXT NOT NULL,
+  channel_user_id TEXT NOT NULL,
+  service TEXT,
+  attendee_name TEXT,
+  start_ts INTEGER NOT NULL,
+  booking_id TEXT,
+  status TEXT NOT NULL DEFAULT 'booked',
+  reminded_at INTEGER,
+  recovered_at INTEGER,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_start ON appointments(start_ts);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status, start_ts);
+
 -- Per-customer memory extracted by the insights analyzer. Injected into the
 -- system context when the same customer writes again.
 CREATE TABLE IF NOT EXISTS customer_facts (

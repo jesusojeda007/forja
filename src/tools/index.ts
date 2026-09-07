@@ -29,7 +29,12 @@ export function buildTools(ctx: ToolContext) {
     pauseBot: pauseBotTool(ctx.env, ctx.getConversationId),
     snoozeUser: snoozeUserTool(ctx.env, ctx.getConversationId),
     captureLead: captureLeadTool(ctx.env, ctx.getConversationId),
-    scheduleAppointment: scheduleAppointmentTool(ctx.env, ctx.getConversationId),
+    scheduleAppointment: scheduleAppointmentTool(
+      ctx.env,
+      ctx.getConversationId,
+      ctx.getChannel,
+      ctx.getChannelUserId,
+    ),
     // El QR de pago no gatea a Pro: es la herramienta de cierre de venta del
     // nicho tienda y no requiere ningún servicio externo de Forja.
     sendPaymentQr: sendPaymentQrTool(ctx.env, ctx.getConversationId, ctx.getChannel, ctx.getChannelUserId),

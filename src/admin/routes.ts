@@ -512,6 +512,9 @@ adminApp.post("/config", async (c) => {
   if (form.get("blindaje_present") !== null) {
     await repo.set(SETTING_KEYS.blindaje, form.get(SETTING_KEYS.blindaje) === "on" ? "on" : "off");
   }
+  if (form.get("noshows_present") !== null) {
+    await repo.set(SETTING_KEYS.noshows, form.get(SETTING_KEYS.noshows) === "on" ? "on" : "off");
+  }
 
   // BYO-LLM: proveedor y modelo se guardan tal cual (allow-list de valores).
   const provRaw = form.get(SETTING_KEYS.llmProvider);

@@ -28,6 +28,11 @@ export const SETTING_KEYS = {
   // verifica que la respuesta se apoye en el contexto del negocio o la KB antes
   // de enviarla. Ver src/llm/blindajeCheck.ts.
   blindaje: "blindaje",
+  // Recupera no-shows (superpoder): "" / "off" (default) | "on". Con "on", un
+  // trabajo nocturno manda un recordatorio la noche anterior a cada cita y, si
+  // el cliente no dio señales tras la hora de la cita, un mensaje de
+  // recuperación. Ver src/noshows/run.ts.
+  noshows: "noshows",
   // BYO-LLM (dashboard "Modelo de IA"): the owner plugs their own provider,
   // API key and/or concrete model. Empty = the instance's env defaults.
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai

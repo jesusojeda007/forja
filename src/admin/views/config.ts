@@ -303,6 +303,15 @@ export function renderConfig(
             <span class="text-dim text-[11.5px]">El bot solo afirma datos (precios, horarios, disponibilidad, políticas) que estén en tu información o tu base de conocimiento. Si no lo sabe, lo confirma contigo en vez de improvisar. Verifica cada respuesta antes de enviarla — un poco más lenta y con un costo mínimo por mensaje.</span>
           </span>
         </label>
+        <input type="hidden" name="noshows_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.noshows}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.noshows] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Recupera no-shows</span>
+            <span class="text-dim text-[11.5px]">El bot recuerda cada cita la noche anterior ("¿sigue en pie?") y, si alguien no llega ni avisa, le escribe para reagendar. Necesita que agendes las citas con la herramienta de calendario del bot.</span>
+          </span>
+        </label>
         <fieldset style="display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0">
           <legend class="font-display font-semibold text-[13.5px] text-cream">Avanzado · prompt del agente</legend>
           ${renderTextArea({

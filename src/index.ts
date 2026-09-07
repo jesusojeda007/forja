@@ -325,6 +325,10 @@ export default {
     // mejoras en /admin/mejoras. Corre DESPUÉS del analizador (usa su output).
     const { runFlywheel } = await import("./flywheel/detect");
     await runFlywheel(env).catch((e) => console.error("flywheel:", e));
+    // Recupera no-shows (superpoder, opt-in): recordatorio la noche anterior a
+    // cada cita + mensaje de recuperación a los no-shows silenciosos.
+    const { runNoShows } = await import("./noshows/run");
+    await runNoShows(env).catch((e) => console.error("noshows:", e));
     // Modo COPILOTO (autonomy_level="copilot"): auto-aplica las mejoras seguras
     // detectadas (lecciones + KB sin huecos). Lo delicado espera al dueño.
     try {

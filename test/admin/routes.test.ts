@@ -340,6 +340,30 @@ describe("admin routes — config save (POST /config)", () => {
     expect(settingsWrites(offLog)[SETTING_KEYS.blindaje]).toBe("off");
   });
 
+  it("noshows: checkbox marcado guarda 'on', marcador sin checkbox guarda 'off'", async () => {
+    const onLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ noshows_present: "1", [SETTING_KEYS.noshows]: "on" }),
+      }),
+      makeEnv(makeStubDb([], onLog)),
+    );
+    expect(settingsWrites(onLog)[SETTING_KEYS.noshows]).toBe("on");
+
+    const offLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ noshows_present: "1" }),
+      }),
+      makeEnv(makeStubDb([], offLog)),
+    );
+    expect(settingsWrites(offLog)[SETTING_KEYS.noshows]).toBe("off");
+  });
+
   it("blindaje: un form de otra sección (sin marcador) no toca el setting", async () => {
     const runLog: Array<{ sql: string; params: unknown[] }> = [];
     await adminApp.fetch(

@@ -1,5 +1,8 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { scheduleAppointmentTool } from "../../src/tools/scheduleAppointment";
+import { createTestMiniflare } from "../helpers/miniflareSetup";
+import { Db } from "../../src/db/client";
+import { ConversationsRepo } from "../../src/db/conversations";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -153,5 +156,65 @@ describe("scheduleAppointmentTool", () => {
     )) as { error: string };
     expect(result.error).toBe("calcom_not_configured");
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("scheduleAppointmentTool — persistencia local para no-shows", () => {
+  it("al reservar OK, guarda la cita en la tabla appointments con canal/usuario", async () => {
+    const mf = await createTestMiniflare();
+    const d1 = await mf.getD1Database("DB");
+    const db = new Db(d1 as any);
+    const conv = await new ConversationsRepo(db).getOrCreate("telegram", "u9");
+
+    global.fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ data: { id: "bk_9", status: "accepted", start: "2027-06-01T17:00:00.000Z" } }),
+          { status: 201 },
+        ),
+    ) as any;
+
+    const env = { CALCOM_API_KEY: "fake", CALCOM_EVENT_TYPE_ID: "100", BOT_TIER: "pro", DB: d1 } as any;
+    const tool = scheduleAppointmentTool(
+      env,
+      () => conv.id,
+      () => "telegram",
+      () => "u9",
+    );
+    const result = (await tool.execute!(
+      {
+        startTime: "2027-06-01T17:00:00-06:00",
+        attendeeName: "Nadia",
+        attendeeEmail: "nadia@x.com",
+        service: "Corte",
+      },
+      {} as any,
+    )) as { booked: boolean };
+    expect(result.booked).toBe(true);
+
+    const row = await db.first<any>(
+      "SELECT * FROM appointments WHERE conversation_id = ?",
+      [conv.id],
+    );
+    expect(row).toBeTruthy();
+    expect(row.channel).toBe("telegram");
+    expect(row.channel_user_id).toBe("u9");
+    expect(row.service).toBe("Corte");
+    expect(row.attendee_name).toBe("Nadia");
+    expect(row.booking_id).toBe("bk_9");
+    expect(row.status).toBe("booked");
+  });
+
+  it("sin DB o sin canal, no truena (solo reserva)", async () => {
+    global.fetch = vi.fn(
+      async () => new Response(JSON.stringify({ data: { id: 1, status: "accepted" } }), { status: 201 }),
+    ) as any;
+    const env = { CALCOM_API_KEY: "fake", CALCOM_EVENT_TYPE_ID: "100", BOT_TIER: "pro" } as any;
+    const tool = scheduleAppointmentTool(env, () => "conv_x");
+    const result = (await tool.execute!(
+      { startTime: "2027-06-01T17:00:00-06:00", attendeeName: "X", attendeeEmail: "x@x.com" },
+      {} as any,
+    )) as { booked: boolean };
+    expect(result.booked).toBe(true);
   });
 });
