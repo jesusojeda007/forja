@@ -19,3 +19,4 @@ dist/
 docs/_recon-digest.json
 .mc-credentials.local
 .dashboard-credentials.local
+wrangler.dev.toml
