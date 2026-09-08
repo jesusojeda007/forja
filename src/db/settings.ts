@@ -64,6 +64,12 @@ export const SETTING_KEYS = {
   // Catálogo por URL: feed público del propio negocio (Shopify products.json,
   // WooCommerce store API o CSV de Google Sheets). Se cachea en D1 con TTL.
   catalogSourceUrl: "catalog_source_url",
+  // Calculadora de ROI (Modo Agencia · pieza C). La agencia ajusta estos valores
+  // y el panel traduce la actividad del bot a plata. Vacío = defaults.
+  roiHourlyRate: "roi_hourly_rate",   // costo de 1 hora de atención humana (default 8)
+  roiCurrency: "roi_currency",        // símbolo/código a mostrar (default "USD")
+  roiMonthlyFee: "roi_monthly_fee",   // lo que la agencia le cobra al cliente/mes (para el múltiplo)
+  roiNoShowValue: "roi_noshow_value", // valor de una cita recuperada (default 0 = no se cuenta)
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

@@ -17,6 +17,7 @@ import { resolveRole, CLIENT_HIDDEN_TABS, type AdminRole } from "./auth";
 import { layout, renderUpgrade } from "./views/layout";
 import { isPro } from "../config";
 import { renderOverview } from "./views/overview";
+import { renderRoi } from "./views/roi";
 import { renderStats } from "./views/stats";
 import { renderCosts } from "./views/costs";
 import {
@@ -125,6 +126,10 @@ adminApp.get("/projects", (c) =>
 // --- Read-only tabs ---------------------------------------------------------
 
 adminApp.get("/overview", async (c) => c.html(await renderOverview(c.env, c.get("role"))));
+
+// Retorno / ROI (Modo Agencia · pieza C). Visible también para el cliente — es
+// la justificación de la mensualidad.
+adminApp.get("/roi", async (c) => c.html(await renderRoi(c.env, c.get("role"))));
 
 adminApp.get("/stats", async (c) => c.html(await renderStats(c.env, c.get("role"))));
 
@@ -540,6 +545,10 @@ adminApp.post("/config", async (c) => {
     SETTING_KEYS.paymentQrUrl,
     SETTING_KEYS.paymentInstructions,
     SETTING_KEYS.catalogSourceUrl,
+    SETTING_KEYS.roiHourlyRate,
+    SETTING_KEYS.roiCurrency,
+    SETTING_KEYS.roiMonthlyFee,
+    SETTING_KEYS.roiNoShowValue,
   ];
   for (const key of textKeys) {
     const raw = form.get(key);

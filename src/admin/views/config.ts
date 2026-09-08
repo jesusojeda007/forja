@@ -357,6 +357,32 @@ export function renderConfig(
             Enviar reporte de prueba ahora
           </button>
         </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span class="font-display font-semibold text-[13px] text-cream">Calculadora de Retorno</span>
+          <span class="text-dim text-[11.5px]">Con estos valores, la pestaña <b class="text-cream">Retorno</b> traduce la actividad del bot a plata. Útil para justificar la mensualidad ante el cliente.</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Valor de 1 hora de atención
+              <input type="number" min="0" step="0.5" name="${SETTING_KEYS.roiHourlyRate}" value="${settings[SETTING_KEYS.roiHourlyRate] ?? ""}" placeholder="8"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Moneda
+              <input name="${SETTING_KEYS.roiCurrency}" value="${settings[SETTING_KEYS.roiCurrency] ?? ""}" placeholder="USD" maxlength="6"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Tu mensualidad al cliente (para el múltiplo)
+              <input type="number" min="0" step="1" name="${SETTING_KEYS.roiMonthlyFee}" value="${settings[SETTING_KEYS.roiMonthlyFee] ?? ""}" placeholder="—"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Valor de una cita recuperada
+              <input type="number" min="0" step="1" name="${SETTING_KEYS.roiNoShowValue}" value="${settings[SETTING_KEYS.roiNoShowValue] ?? ""}" placeholder="0"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+          </div>
+        </div>
         <fieldset style="display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0">
           <legend class="font-display font-semibold text-[13.5px] text-cream">Avanzado · prompt del agente</legend>
           ${renderTextArea({

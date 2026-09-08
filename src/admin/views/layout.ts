@@ -42,7 +42,10 @@ interface Section {
 const NAV: Section[] = [
   {
     label: "Inicio",
-    items: [{ id: "overview", label: "Resumen", href: "/admin/overview", icon: "layout-dashboard" }],
+    items: [
+      { id: "overview", label: "Resumen", href: "/admin/overview", icon: "layout-dashboard" },
+      { id: "roi", label: "Retorno", href: "/admin/roi", icon: "trending-up" },
+    ],
   },
   {
     label: "Bandeja",
