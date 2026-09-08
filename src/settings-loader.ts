@@ -28,6 +28,8 @@ export interface AgentConfig {
   blindaje: boolean;
   /** Contexto del negocio en crudo (fuentes confirmadas) — lo usa el chequeo de blindaje. */
   businessContext: string;
+  /** Cazador de ventas activo (puntúa el lead tras cada turno + avisa al dueño). */
+  cazador: boolean;
 }
 
 /** Extract the BYO-LLM overrides from a settings snapshot. */
@@ -123,6 +125,7 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
   );
 
   const blindaje = get(SETTING_KEYS.blindaje) === "on";
+  const cazador = get(SETTING_KEYS.cazador) === "on";
 
   const systemPrompt =
     systemPromptOverride ??
@@ -173,5 +176,6 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
     llm: llmOverridesFrom(settings),
     blindaje,
     businessContext,
+    cazador,
   };
 }

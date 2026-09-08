@@ -364,6 +364,30 @@ describe("admin routes — config save (POST /config)", () => {
     expect(settingsWrites(offLog)[SETTING_KEYS.noshows]).toBe("off");
   });
 
+  it("cazador: checkbox marcado guarda 'on', marcador sin checkbox guarda 'off'", async () => {
+    const onLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ cazador_present: "1", [SETTING_KEYS.cazador]: "on" }),
+      }),
+      makeEnv(makeStubDb([], onLog)),
+    );
+    expect(settingsWrites(onLog)[SETTING_KEYS.cazador]).toBe("on");
+
+    const offLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ cazador_present: "1" }),
+      }),
+      makeEnv(makeStubDb([], offLog)),
+    );
+    expect(settingsWrites(offLog)[SETTING_KEYS.cazador]).toBe("off");
+  });
+
   it("galeria: checkbox marcado guarda 'on', marcador sin checkbox guarda 'off'", async () => {
     const onLog: Array<{ sql: string; params: unknown[] }> = [];
     await adminApp.fetch(

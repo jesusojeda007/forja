@@ -114,6 +114,38 @@ export async function renderOverview(env: Env): Promise<string> {
   const resolvedPct7d =
     insight7d.analyzed > 0 ? Math.round((insight7d.resolvedNoHuman / insight7d.analyzed) * 100) : null;
 
+  // --- Cazador de ventas: listos para cerrar ------------------------------------
+  let cazadorSection = "";
+  if (agentCfg.cazador) {
+    const { LeadScoresRepo } = await import("../../db/leadScores");
+    const hot = (await new LeadScoresRepo(db).topOpen(8)).filter(
+      (r) => r.band === "caliente" || r.band === "muy_caliente",
+    );
+    const esc = (s: string) =>
+      s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+    const rows = hot
+      .map(
+        (r) => `<a href="/admin/conversations?c=${encodeURIComponent(r.conversation_id)}"
+          style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);text-decoration:none;color:inherit">
+          <span style="min-width:0">
+            <span class="text-cream text-[12.5px]">${r.band === "muy_caliente" ? "🔥🔥" : "🔥"} ${esc(r.display_name || "(sin nombre)")}</span>
+            <span class="text-dim text-[11px] truncate" style="display:block">${esc(r.reason) || "señales de compra"}</span>
+          </span>
+          <span class="text-muted text-[12px]" style="white-space:nowrap">${r.score}/100</span>
+        </a>`,
+      )
+      .join("");
+    cazadorSection = `
+      <section class="card bg-panel border border-line p-[18px]">
+        <h2 class="font-display font-semibold text-[13.5px] text-cream" style="margin:0 0 8px">🔥 Listos para cerrar</h2>
+        ${
+          hot.length
+            ? rows
+            : `<p class="text-dim text-[12px]" style="margin:0">Nadie caliente ahora mismo. Cuando alguien muestre intención clara de compra, aparece aquí y te llega un aviso.</p>`
+        }
+      </section>`;
+  }
+
   // --- Conversaciones recientes -----------------------------------------------------
   const recentConvs = await db.all<{
     id: string;
@@ -327,6 +359,8 @@ export async function renderOverview(env: Env): Promise<string> {
           })()}
         </div>
       </section>
+
+      ${cazadorSection}
 
       <section class="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-[14px]">
         ${activityChart}

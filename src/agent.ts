@@ -480,5 +480,17 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
         { input: inputTokens, cached: cachedTokens, output: outputTokens },
       ).toFixed(5)}`,
     );
+
+    // Cazador de ventas (superpoder, opt-in): puntúa el calor del lead y, si
+    // cruzó a caliente, le avisa al dueño. Después de enviar — nunca demora la
+    // respuesta al cliente. Best-effort: si falla, no rompe el turno.
+    if (cfg.cazador) {
+      try {
+        const { runCazador } = await import("./cazador/run");
+        await runCazador(this.env, convId);
+      } catch (e) {
+        console.error("[cazador]", e);
+      }
+    }
   }
 }

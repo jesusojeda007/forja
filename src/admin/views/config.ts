@@ -321,6 +321,15 @@ export function renderConfig(
             <span class="text-dim text-[11.5px]">El bot manda fotos, videos y audios reales de tu negocio cuando el cliente quiere ver algo (el menú, el local, una propiedad…). Los archivos se cargan con Claude Code desde la URL de tu catálogo — pídele: "carga mi galería desde &lt;url&gt;".</span>
           </span>
         </label>
+        <input type="hidden" name="cazador_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.cazador}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.cazador] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Cazador de ventas</span>
+            <span class="text-dim text-[11.5px]">El bot mide qué tan "listo para comprar" está cada cliente y te avisa al instante (Telegram y correo) cuando alguien se pone caliente: quién es, por qué, y el link para cerrarlo. En el Resumen ves la lista priorizada.</span>
+          </span>
+        </label>
         <div style="display:flex;flex-direction:column;gap:4px">
           <span class="font-display font-semibold text-[13px] text-cream">Reportes automáticos</span>
           <span class="text-dim text-[11.5px]">Un resumen de tus números (chats, prospectos, temas, horas ahorradas) que te llega solo por Telegram y correo.</span>

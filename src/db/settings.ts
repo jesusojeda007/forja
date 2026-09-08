@@ -42,6 +42,10 @@ export const SETTING_KEYS = {
   // negocio. Los items se cargan por agente/CLI (skill/galeria.md). Ver
   // src/galeria/.
   galeria: "galeria",
+  // Cazador de ventas (superpoder): "" / "off" (default) | "on". Con "on", tras
+  // cada turno se puntúa el calor del lead y, si cruza a caliente, se le avisa
+  // al dueño en el momento. Ver src/cazador/.
+  cazador: "cazador",
   // BYO-LLM (dashboard "Modelo de IA"): the owner plugs their own provider,
   // API key and/or concrete model. Empty = the instance's env defaults.
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai

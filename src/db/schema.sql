@@ -199,6 +199,21 @@ CREATE TABLE IF NOT EXISTS gallery_items (
 );
 CREATE INDEX IF NOT EXISTS idx_gallery_created ON gallery_items(created_at);
 
+-- Cazador de ventas (superpoder): puntaje de calor de cada conversación,
+-- recalculado tras cada turno (sin LLM, por señales). band: frio | tibio |
+-- caliente | muy_caliente. alerted_at = cuándo se le avisó al dueño de este
+-- episodio caliente (se re-avisa si vuelve a subir tras varios días).
+CREATE TABLE IF NOT EXISTS lead_scores (
+  conversation_id TEXT PRIMARY KEY,
+  score INTEGER NOT NULL DEFAULT 0,
+  band TEXT NOT NULL DEFAULT 'frio',
+  reason TEXT NOT NULL DEFAULT '',
+  scored_at INTEGER NOT NULL,
+  alerted_at INTEGER,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_lead_scores_band ON lead_scores(band, score);
+
 -- Per-customer memory extracted by the insights analyzer. Injected into the
 -- system context when the same customer writes again.
 CREATE TABLE IF NOT EXISTS customer_facts (

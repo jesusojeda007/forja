@@ -193,6 +193,14 @@ describe("resolveAgentConfig — learned lessons (flywheel)", () => {
   });
 });
 
+describe("resolveAgentConfig — cazador", () => {
+  it("default apagado; con cazador=on queda true", async () => {
+    expect((await resolveAgentConfig(env, TOOLS)).cazador).toBe(false);
+    await repo.set(SETTING_KEYS.cazador, "on");
+    expect((await resolveAgentConfig(env, TOOLS)).cazador).toBe(true);
+  });
+});
+
 describe("resolveAgentConfig — galería", () => {
   const TOOLS_G = ["searchKb", "sendGalleryItem"];
 
