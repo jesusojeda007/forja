@@ -9,7 +9,7 @@
 El bot recibe mensajes por estas **puertas** (webhooks ya desplegados en su Worker):
 `/webhooks/telegram`, `/webhooks/twilio`, `/webhooks/meta`, `/webhooks/manychat`,
 `/webhooks/whatsapp` (WhatsApp Cloud API oficial), `/webhooks/zernio` (bandeja
-unificada Zernio).
+unificada Zernio), `/webhooks/kapso` (WhatsApp vía Kapso).
 Cada red social se puede conectar por una de estas puertas. Un mismo canal (ej.
 Instagram) tiene **más de un método**; tu trabajo es que el miembro elija el que
 le conviene.
@@ -20,7 +20,7 @@ le conviene.
 
 | Red del cliente | Métodos posibles | Puerta (webhook) | Llaves que pide |
 |---|---|---|---|
-| **WhatsApp** | Cloud API oficial · Twilio · ManyChat | `/webhooks/whatsapp` · `/webhooks/twilio` · `/webhooks/manychat` | Cloud API: `WHATSAPP_PHONE_NUMBER_ID`+`WHATSAPP_ACCESS_TOKEN`+`WHATSAPP_VERIFY_TOKEN`+`WHATSAPP_APP_SECRET` — Twilio: `TWILIO_ACCOUNT_SID`+`TWILIO_AUTH_TOKEN`+`TWILIO_WA_FROM` — ManyChat: `MANYCHAT_API_KEY` |
+| **WhatsApp** | Cloud API oficial · Twilio · ManyChat · Kapso | `/webhooks/whatsapp` · `/webhooks/twilio` · `/webhooks/manychat` · `/webhooks/kapso` | Cloud API: `WHATSAPP_PHONE_NUMBER_ID`+`WHATSAPP_ACCESS_TOKEN`+`WHATSAPP_VERIFY_TOKEN`+`WHATSAPP_APP_SECRET` — Twilio: `TWILIO_ACCOUNT_SID`+`TWILIO_AUTH_TOKEN`+`TWILIO_WA_FROM` — ManyChat: `MANYCHAT_API_KEY` — Kapso: `KAPSO_API_KEY`+`KAPSO_WEBHOOK_SECRET` |
 | **Instagram DMs** | Meta oficial · ManyChat · Zernio | `/webhooks/meta` · `/webhooks/manychat` · `/webhooks/zernio` | Meta: `META_PAGE_ACCESS_TOKEN`+`META_VERIFY_TOKEN`+`META_APP_SECRET` — ManyChat: `MANYCHAT_API_KEY` — Zernio: `ZERNIO_API_KEY`+`ZERNIO_WEBHOOK_SECRET` |
 | **Facebook Messenger** | Meta oficial · ManyChat · Zernio | `/webhooks/meta` · `/webhooks/manychat` · `/webhooks/zernio` | igual que Instagram Meta oficial — Zernio: `ZERNIO_API_KEY`+`ZERNIO_WEBHOOK_SECRET` |
 | **Telegram** | BotFather · Zernio | `/webhooks/telegram` · `/webhooks/zernio` | `TELEGRAM_BOT_TOKEN` — Zernio: `ZERNIO_API_KEY`+`ZERNIO_WEBHOOK_SECRET` |
@@ -134,6 +134,25 @@ setup de Meta.
   Zernio se suma, no lo sustituye. Media de WhatsApp vía Zernio pasa por un proxy
   de media firmado del propio Worker (igual que WhatsApp Cloud) — sin config extra.
 - Guía detallada: `zernio.md`.
+
+---
+
+## Kapso — WhatsApp con onboarding fácil (canal ADICIONAL)
+
+**Puente con la Cloud API de Meta:** Kapso (`kapso.com`) da de alta el número de
+WhatsApp, maneja los webhooks y expone el envío con la misma forma que Meta, por
+`/webhooks/kapso`. Un par de llaves: `KAPSO_API_KEY` + `KAPSO_WEBHOOK_SECRET`.
+
+- **Pros:** alta del número y mantenimiento sin pelear con el panel de Meta; API
+  con forma de Meta (lo que se construya sirve también directo contra Meta).
+- **Contras:** **costo mensual** de Kapso; un intermediario más; misma **ventana
+  de 24 h** de Meta (fuera de ella, solo plantillas aprobadas).
+- **Cuándo ofrecerlo:** el miembro quiere WhatsApp y no quiere el papeleo de Meta,
+  pero tampoco necesita varias redes juntas (para eso, Zernio). Para WhatsApp a
+  secas y con soltura técnica, `whatsapp-cloud.md` es directo y sin ese costo.
+- Media entrante pasa por un proxy firmado del Worker (`/webhooks/kapso/media`) —
+  sin config extra.
+- Guía detallada: `kapso.md`.
 
 ---
 

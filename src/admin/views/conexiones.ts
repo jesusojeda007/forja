@@ -51,6 +51,10 @@ function channelStatuses(env: Env): ChannelStatus[] {
     !has(env.ZERNIO_API_KEY) && "ZERNIO_API_KEY",
     !has(env.ZERNIO_WEBHOOK_SECRET) && "ZERNIO_WEBHOOK_SECRET",
   ].filter(Boolean) as string[];
+  const kapsoMissing = [
+    !has(env.KAPSO_API_KEY) && "KAPSO_API_KEY",
+    !has(env.KAPSO_WEBHOOK_SECRET) && "KAPSO_WEBHOOK_SECRET",
+  ].filter(Boolean) as string[];
 
   return [
     {
@@ -118,6 +122,17 @@ function channelStatuses(env: Env): ChannelStatus[] {
       webhookPath: "/webhooks/zernio",
       howTo:
         "En Zernio → Settings → Webhooks: apunta el endpoint a la URL de abajo, suscribe el evento message.received y guarda el secret. La API key va en Settings → API Keys.",
+    },
+    {
+      id: "kapso",
+      name: "WhatsApp (Kapso)",
+      icon: "message-circle",
+      desc: "WhatsApp con onboarding rápido — Kapso hace de puente con la API de Meta.",
+      ok: kapsoMissing.length === 0,
+      missing: kapsoMissing,
+      webhookPath: "/webhooks/kapso",
+      howTo:
+        "En Kapso → tu número → Webhooks: apunta el endpoint a la URL de abajo y guarda el secret. La API key va en Integrations → API keys.",
     },
   ];
 }

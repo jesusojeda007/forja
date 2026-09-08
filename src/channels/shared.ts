@@ -5,7 +5,8 @@ export type ChannelId =
   | "messenger"
   | "instagram"
   | "whatsapp"
-  | "zernio";
+  | "zernio"
+  | "kapso";
 
 export interface IncomingMessage {
   channel: ChannelId;

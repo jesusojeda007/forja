@@ -89,6 +89,10 @@ export interface Env {
   // El envío es a zernio.com/api/v1/inbox/conversations/<id>/messages (Bearer).
   ZERNIO_API_KEY?: string;            // secret: API key de Zernio (sk_...); Bearer para enviar y para la media
   ZERNIO_WEBHOOK_SECRET?: string;     // secret: firma X-Zernio-Signature (HMAC-SHA256 hex del cuerpo)
+  // Kapso — WhatsApp vía proxy sobre la Cloud API de Meta (onboarding + webhooks
+  // + envío por API). Un webhook (/webhooks/kapso) y envío con forma de Meta.
+  KAPSO_API_KEY?: string;             // secret: API key del proyecto Kapso; header X-API-Key
+  KAPSO_WEBHOOK_SECRET?: string;      // secret: firma X-Webhook-Signature (HMAC-SHA256 hex del cuerpo)
   // Galería (superpoder): guarda los endpoints de gestión (/galeria/manifest,
   // POST /galeria/items, DELETE /galeria/items/:id) que usa el agente/CLI.
   GALERIA_TOKEN?: string;             // secret: header X-Galeria-Token

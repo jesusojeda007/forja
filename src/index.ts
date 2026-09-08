@@ -7,6 +7,7 @@ import { twilioAdapter } from "./channels/twilio";
 import { parseMetaEvents, verifyMetaSignature } from "./channels/meta";
 import { parseWhatsAppEvents, serveWhatsAppMedia } from "./channels/whatsapp";
 import { parseZernioEvent, verifyZernioSignature, serveZernioMedia } from "./channels/zernio";
+import { parseKapsoEvent, verifyKapsoSignature, serveKapsoMedia } from "./channels/kapso";
 import { adminApp } from "./admin/routes";
 import { purgeOldMessages } from "./crons/purgeOldMessages";
 import { DAILY_CRON, isNightlyTick } from "./crons/schedule";
@@ -265,6 +266,35 @@ app.get("/webhooks/zernio/media", (c) =>
     c.req.query("sig") ?? null,
     c.env,
   ),
+);
+
+// --- Kapso (WhatsApp vía proxy sobre la Cloud API de Meta) ------------------
+// POST = mensajes entrantes, firmados con X-Webhook-Signature (HMAC-SHA256 hex
+// del cuerpo crudo). Fail-closed: sin firma válida (o sin KAPSO_WEBHOOK_SECRET)
+// → 403. Solo procesamos whatsapp.message.received entrante.
+app.post("/webhooks/kapso", async (c) => {
+  const raw = await c.req.text();
+  const sig = c.req.header("x-webhook-signature");
+  const valid = await verifyKapsoSignature(raw, sig, c.env.KAPSO_WEBHOOK_SECRET ?? "");
+  if (!valid) return c.text("bad signature", 403);
+  let body: unknown;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return c.text("bad json", 400);
+  }
+  const origin = c.env.DASHBOARD_BASE_URL || new URL(c.req.url).origin;
+  for (const msg of await parseKapsoEvent(body as any, c.env, origin)) {
+    const doId = c.env.AGENT.idFromName(`${msg.channel}:${msg.channelUserId}`);
+    await c.env.AGENT.get(doId).ingest(msg);
+  }
+  return c.text("ok", 200);
+});
+
+// Proxy FIRMADO del media entrante de Kapso (URL autenticada). HMAC + expiración,
+// la API key queda del lado del server.
+app.get("/webhooks/kapso/media", (c) =>
+  serveKapsoMedia(c.req.query("u") ?? null, c.req.query("exp") ?? null, c.req.query("sig") ?? null, c.env),
 );
 
 // Universal webhook LEARN endpoint. When learn mode is ON for `:channel`, this

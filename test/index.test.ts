@@ -97,6 +97,66 @@ describe("Worker entry", () => {
     });
   });
 
+  describe("POST /webhooks/kapso", () => {
+    const SECRET = "whsec_kapso";
+    const bodyText = JSON.stringify({
+      message: {
+        id: "wamid.1",
+        type: "text",
+        from: "16315551181",
+        text: { body: "hola" },
+        kapso: { direction: "inbound", status: "received", has_media: false },
+      },
+      conversation: { id: "conv_1", phone_number: "16315551181", phone_number_id: "PNID_1" },
+      phone_number_id: "PNID_1",
+    });
+
+    function ingestSpyEnv() {
+      const ingest = vi.fn(async () => {});
+      const kapsoEnv = {
+        ...env,
+        KAPSO_WEBHOOK_SECRET: SECRET,
+        KAPSO_API_KEY: "sk_test",
+        AGENT: { idFromName: () => "do-id", get: () => ({ ingest }) },
+      } as any;
+      return { kapsoEnv, ingest };
+    }
+
+    const post = (headers: Record<string, string>, entorno: any) =>
+      worker.fetch(
+        new Request("https://test/webhooks/kapso", { method: "POST", headers, body: bodyText }),
+        entorno,
+        {} as any,
+      );
+
+    it("rechaza (403) sin firma válida", async () => {
+      const { kapsoEnv } = ingestSpyEnv();
+      const res = await post({ "Content-Type": "application/json" }, kapsoEnv);
+      expect(res.status).toBe(403);
+    });
+
+    it("rechaza (403) si el secret no está configurado", async () => {
+      const sig = createHmac("sha256", SECRET).update(bodyText).digest("hex");
+      const res = await post(
+        { "Content-Type": "application/json", "X-Webhook-Signature": sig },
+        { ...env, AGENT: { idFromName: () => "x", get: () => ({ ingest: vi.fn() }) } },
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("con firma válida, entrega el mensaje al agente y responde 200", async () => {
+      const { kapsoEnv, ingest } = ingestSpyEnv();
+      const sig = createHmac("sha256", SECRET).update(bodyText).digest("hex");
+      const res = await post({ "Content-Type": "application/json", "X-Webhook-Signature": sig }, kapsoEnv);
+      expect(res.status).toBe(200);
+      expect(ingest).toHaveBeenCalledTimes(1);
+      const msg = (ingest.mock.calls[0] as any[])[0];
+      expect(msg.channel).toBe("kapso");
+      expect(msg.text).toBe("hola");
+      expect(msg.channelUserId).toBe("PNID_1::16315551181");
+    });
+  });
+
   describe("POST /kb/reindex", () => {
     const pedir = (headers: Record<string, string>, entorno: any = env) =>
       worker.fetch(

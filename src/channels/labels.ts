@@ -14,6 +14,7 @@ export const CHANNEL_LABELS: Record<string, string> = {
   messenger: "Messenger",
   manychat: "ManyChat",
   zernio: "Zernio",
+  kapso: "WhatsApp (Kapso)",
 };
 
 export function channelLabel(channel: string | null | undefined): string {
@@ -84,6 +85,9 @@ export function configuredChannels(env: Env): ConfiguredChannel[] {
   }
   if (env.ZERNIO_API_KEY) {
     out.push({ id: "zernio", label: "Zernio", detail: "bandeja unificada" });
+  }
+  if (env.KAPSO_API_KEY) {
+    out.push({ id: "kapso", label: "WhatsApp", detail: "vía Kapso" });
   }
   return out;
 }
