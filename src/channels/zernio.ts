@@ -231,6 +231,13 @@ export const zernioAdapter: ChannelAdapter = {
   },
 
   async sendImage({ channelUserId, url: imageUrl, caption }, env: Env) {
+    await zernioAdapter.sendMedia!(
+      { channel: "zernio", channelUserId, url: imageUrl, kind: "image", caption },
+      env,
+    );
+  },
+
+  async sendMedia({ channelUserId, url, kind, caption }, env: Env) {
     const apiKey = env.ZERNIO_API_KEY;
     if (!apiKey) throw new Error("Zernio: falta ZERNIO_API_KEY.");
     const { accountId, conversationId } = unpackZernioId(channelUserId);
@@ -241,15 +248,15 @@ export const zernioAdapter: ChannelAdapter = {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           accountId,
-          attachmentUrl: imageUrl,
-          attachmentType: "image",
+          attachmentUrl: url,
+          attachmentType: kind === "video" ? "video" : kind === "audio" ? "audio" : "image",
           message: caption,
         }),
       },
     );
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
-      console.error(`zernio sendImage ${res.status}: ${errBody}`);
+      console.error(`zernio sendMedia ${kind} ${res.status}: ${errBody}`);
     }
   },
 };

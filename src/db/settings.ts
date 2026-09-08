@@ -37,6 +37,11 @@ export const SETTING_KEYS = {
   // lunes) | "diario". Un resumen del período al dueño por Telegram + email.
   // Ver src/reportes/run.ts.
   reportes: "reportes",
+  // Galería (superpoder): "" / "off" (default) | "on". Con "on", el bot puede
+  // llamar la tool sendGalleryItem para mandar fotos/videos/audios reales del
+  // negocio. Los items se cargan por agente/CLI (skill/galeria.md). Ver
+  // src/galeria/.
+  galeria: "galeria",
   // BYO-LLM (dashboard "Modelo de IA"): the owner plugs their own provider,
   // API key and/or concrete model. Empty = the instance's env defaults.
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai

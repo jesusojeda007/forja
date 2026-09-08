@@ -364,6 +364,30 @@ describe("admin routes — config save (POST /config)", () => {
     expect(settingsWrites(offLog)[SETTING_KEYS.noshows]).toBe("off");
   });
 
+  it("galeria: checkbox marcado guarda 'on', marcador sin checkbox guarda 'off'", async () => {
+    const onLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ galeria_present: "1", [SETTING_KEYS.galeria]: "on" }),
+      }),
+      makeEnv(makeStubDb([], onLog)),
+    );
+    expect(settingsWrites(onLog)[SETTING_KEYS.galeria]).toBe("on");
+
+    const offLog: Array<{ sql: string; params: unknown[] }> = [];
+    await adminApp.fetch(
+      req("/config", {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ galeria_present: "1" }),
+      }),
+      makeEnv(makeStubDb([], offLog)),
+    );
+    expect(settingsWrites(offLog)[SETTING_KEYS.galeria]).toBe("off");
+  });
+
   it("reportes: el select guarda un valor válido y normaliza lo inválido a 'off'", async () => {
     const okLog: Array<{ sql: string; params: unknown[] }> = [];
     await adminApp.fetch(

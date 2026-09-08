@@ -180,6 +180,25 @@ CREATE TABLE IF NOT EXISTS report_sends (
   sent_at INTEGER NOT NULL
 );
 
+-- Galería (superpoder): media REAL del negocio (fotos, videos, audios) que el
+-- bot manda cuando el cliente quiere ver algo. Los bytes viven en R2
+-- (bucket CATALOG, key galeria/<id>) y esta tabla es el índice + el "cuándo
+-- usarlo". label = nombre corto (menú), trigger = cuándo mandarlo
+-- (cuando pregunten por la carta o el menú). kind: image | video | audio.
+-- NOTE: nunca metas punto y coma dentro de un comentario del schema.
+CREATE TABLE IF NOT EXISTS gallery_items (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  label TEXT NOT NULL,
+  trigger TEXT NOT NULL DEFAULT '',
+  r2_key TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL DEFAULT 0,
+  source_url TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gallery_created ON gallery_items(created_at);
+
 -- Per-customer memory extracted by the insights analyzer. Injected into the
 -- system context when the same customer writes again.
 CREATE TABLE IF NOT EXISTS customer_facts (

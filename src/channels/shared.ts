@@ -37,4 +37,13 @@ export interface ChannelAdapter {
    * que `url` sea alcanzable desde internet — el QR se sirve desde el Worker.
    */
   sendImage?(req: { channel: ChannelId; channelUserId: string; url: string; caption?: string }, env: any): Promise<void>;
+  /**
+   * Envía media (imagen | video | audio) por URL pública con caption opcional.
+   * Lo usa la Galería. Opcional: `sendChannelMedia` (replies/sender.ts) cae a
+   * `sendImage` para imágenes o, en última instancia, a mandar la URL como texto.
+   */
+  sendMedia?(
+    req: { channel: ChannelId; channelUserId: string; url: string; kind: "image" | "video" | "audio"; caption?: string },
+    env: any,
+  ): Promise<void>;
 }

@@ -8,6 +8,7 @@ import { captureLeadTool } from "./captureLead";
 import { scheduleAppointmentTool } from "./scheduleAppointment";
 import { catalogQueryTool } from "./catalogQuery";
 import { sendPaymentQrTool } from "./sendPaymentQr";
+import { sendGalleryItemTool } from "./sendGalleryItem";
 import type { ChannelId } from "../channels/shared";
 
 export interface ToolContext {
@@ -38,6 +39,9 @@ export function buildTools(ctx: ToolContext) {
     // El QR de pago no gatea a Pro: es la herramienta de cierre de venta del
     // nicho tienda y no requiere ningún servicio externo de Forja.
     sendPaymentQr: sendPaymentQrTool(ctx.env, ctx.getConversationId, ctx.getChannel, ctx.getChannelUserId),
+    // Galería (superpoder): settings-loader la excluye de enabledToolNames salvo
+    // que settings.galeria = "on", así el prompt sólo la anuncia cuando aplica.
+    sendGalleryItem: sendGalleryItemTool(ctx.env, ctx.getConversationId, ctx.getChannel, ctx.getChannelUserId),
   };
 
   // Pro tier additions

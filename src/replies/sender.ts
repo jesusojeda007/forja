@@ -36,6 +36,34 @@ export async function sendChunkedReply(
   );
 }
 
+/**
+ * Manda media por el canal con degradación: `adapter.sendMedia` si existe →
+ * `adapter.sendImage` para imágenes → en última instancia la URL como texto
+ * (WhatsApp/Telegram le hacen preview). Nunca lanza.
+ */
+export async function sendChannelMedia(
+  adapter: ChannelAdapter,
+  req: { channel: ChannelId; channelUserId: string; url: string; kind: "image" | "video" | "audio"; caption?: string },
+  env: Env,
+): Promise<void> {
+  try {
+    if (adapter.sendMedia) return await adapter.sendMedia(req, env);
+    if (req.kind === "image" && adapter.sendImage) {
+      return await adapter.sendImage(
+        { channel: req.channel, channelUserId: req.channelUserId, url: req.url, caption: req.caption },
+        env,
+      );
+    }
+  } catch (e) {
+    console.error(`[sendChannelMedia] ${req.channel} falló, mando la URL como texto:`, e);
+  }
+  const text = req.caption ? `${req.caption}\n${req.url}` : req.url;
+  await adapter.sendReply(
+    { channel: req.channel, channelUserId: req.channelUserId, chunks: [text], interChunkDelayMs: 0 },
+    env,
+  );
+}
+
 export function pickAdapter(channel: ChannelId): ChannelAdapter {
   if (channel === "telegram") return telegramAdapter;
   if (channel === "manychat") return manychatAdapter;

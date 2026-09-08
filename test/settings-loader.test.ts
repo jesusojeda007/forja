@@ -193,6 +193,23 @@ describe("resolveAgentConfig — learned lessons (flywheel)", () => {
   });
 });
 
+describe("resolveAgentConfig — galería", () => {
+  const TOOLS_G = ["searchKb", "sendGalleryItem"];
+
+  it("sin galeria=on, sendGalleryItem NO está en enabledToolNames ni en el prompt", async () => {
+    const cfg = await resolveAgentConfig(env, TOOLS_G);
+    expect(cfg.enabledToolNames).not.toContain("sendGalleryItem");
+    expect(cfg.systemPrompt).not.toContain("sendGalleryItem");
+  });
+
+  it("con galeria=on, sendGalleryItem se habilita y aparece en el prompt", async () => {
+    await repo.set(SETTING_KEYS.galeria, "on");
+    const cfg = await resolveAgentConfig(env, TOOLS_G);
+    expect(cfg.enabledToolNames).toContain("sendGalleryItem");
+    expect(cfg.systemPrompt).toContain("sendGalleryItem");
+  });
+});
+
 describe("resolveAgentConfig — blindaje", () => {
   it("default: blindaje apagado y sin bloque en el prompt", async () => {
     const cfg = await resolveAgentConfig(env, TOOLS);

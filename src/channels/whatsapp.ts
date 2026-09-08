@@ -236,4 +236,30 @@ export const whatsappAdapter: ChannelAdapter = {
       console.error(`whatsapp sendImage ${res.status}: ${errBody}`);
     }
   },
+
+  async sendMedia({ channelUserId, url, kind, caption }, env: Env) {
+    const phoneId = env.WHATSAPP_PHONE_NUMBER_ID;
+    const token = env.WHATSAPP_ACCESS_TOKEN;
+    if (!phoneId || !token) {
+      throw new Error("WhatsApp Cloud: falta WHATSAPP_PHONE_NUMBER_ID o WHATSAPP_ACCESS_TOKEN.");
+    }
+    // WhatsApp Cloud: type image|video|audio, con {link, caption}. audio no
+    // acepta caption — se ignora del lado de Meta.
+    const payload: Record<string, unknown> = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: channelUserId,
+      type: kind,
+      [kind]: kind === "audio" ? { link: url } : { link: url, caption },
+    };
+    const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(`whatsapp sendMedia ${kind} ${res.status}: ${errBody}`);
+    }
+  },
 };

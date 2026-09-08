@@ -196,4 +196,27 @@ export const metaAdapter: ChannelAdapter = {
     }
     if (caption) await send({ text: caption });
   },
+
+  async sendMedia({ channel, channelUserId, url: mediaUrl, kind, caption }, env: Env) {
+    const useIG = channel === "instagram" && !!env.INSTAGRAM_ACCESS_TOKEN;
+    const base = useIG ? "https://graph.instagram.com" : "https://graph.facebook.com";
+    const token = useIG ? env.INSTAGRAM_ACCESS_TOKEN : env.META_PAGE_ACCESS_TOKEN;
+    if (!token) {
+      throw new Error("Meta: falta INSTAGRAM_ACCESS_TOKEN (IG Login) o META_PAGE_ACCESS_TOKEN (Messenger).");
+    }
+    const node = useIG ? await instagramSenderId(token) : "me";
+    const endpoint = `${base}/${GRAPH_VERSION}/${node}/messages`;
+    const send = (message: Record<string, unknown>) =>
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ recipient: { id: channelUserId }, message }),
+      });
+    const res = await send({ attachment: { type: kind, payload: { url: mediaUrl } } });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(`meta sendMedia ${kind} ${res.status} ${useIG ? "IG" : "FB"}: ${errBody}`);
+    }
+    if (caption) await send({ text: caption });
+  },
 };

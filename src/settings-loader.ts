@@ -116,7 +116,11 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
   // Dashboard tool toggles: the prompt only advertises the enabled tools, so
   // the model never tries to call something that was turned off.
   const disabledTools = parseCsvList(get(SETTING_KEYS.disabledTools));
-  const enabledToolNames = toolNames.filter((n) => !disabledTools.includes(n));
+  // La Galería es opt-in: la tool sendGalleryItem sólo se anuncia con galeria="on".
+  const galeriaOn = get(SETTING_KEYS.galeria) === "on";
+  const enabledToolNames = toolNames.filter(
+    (n) => !disabledTools.includes(n) && (n !== "sendGalleryItem" || galeriaOn),
+  );
 
   const blindaje = get(SETTING_KEYS.blindaje) === "on";
 

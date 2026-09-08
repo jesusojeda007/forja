@@ -16,7 +16,7 @@ import { Db } from "./db/client";
 import { SettingsRepo, SETTING_KEYS } from "./db/settings";
 import { detectKind } from "./learn/fieldPath";
 import { saveCapture, isLearnMode } from "./learn/mapping";
-import { tokensMatch, manychatWebhookAllowed } from "./http-auth";
+import { tokensMatch, manychatWebhookAllowed, galeriaTokenOk } from "./http-auth";
 import { apiApp } from "./api";
 import { servePaymentQr } from "./payments/qr-storage";
 
@@ -29,6 +29,53 @@ app.get("/health", (c) => c.text("ok", 200));
 // QR de pago del negocio, público: WhatsApp/Meta necesita fetchear la URL para
 // mostrar la imagen al cliente (por eso NO va bajo /admin). Sin QR subido, 404.
 app.get("/qr", (c) => servePaymentQr(c.env));
+
+// --- Galería (superpoder) --------------------------------------------------
+// Gestión guardada por X-Galeria-Token (secret GALERIA_TOKEN); la usa el
+// agente/CLI (skill/galeria.md) para cargar toda la media de un catálogo web.
+const galeriaGuard = async (c: any, next: any) => {
+  if (!galeriaTokenOk(c.req.raw, c.env)) return c.json({ ok: false, error: "unauthorized" }, 401);
+  await next();
+};
+app.get("/galeria/manifest", galeriaGuard, async (c) => {
+  const { GalleryRepo } = await import("./db/gallery");
+  const items = await new GalleryRepo(new Db(c.env.DB)).list();
+  return c.json({ ok: true, items });
+});
+app.post("/galeria/items", galeriaGuard, async (c) => {
+  let body: { url?: string; label?: string; trigger?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ ok: false, error: "bad json" }, 400);
+  }
+  if (!body.url || !body.label) return c.json({ ok: false, error: "url y label son obligatorios" }, 400);
+  try {
+    const { ingestFromUrl } = await import("./galeria/storage");
+    const { id, kind } = await ingestFromUrl(c.env, {
+      url: body.url,
+      label: body.label,
+      trigger: body.trigger ?? "",
+    });
+    return c.json({ ok: true, id, kind });
+  } catch (e: any) {
+    return c.json({ ok: false, error: e?.message ?? String(e) }, 422);
+  }
+});
+app.delete("/galeria/items/:id", galeriaGuard, async (c) => {
+  const { GalleryRepo } = await import("./db/gallery");
+  const repo = new GalleryRepo(new Db(c.env.DB));
+  const item = await repo.get(c.req.param("id"));
+  if (item && c.env.CATALOG) await c.env.CATALOG.delete(item.r2_key).catch(() => {});
+  const removed = await repo.delete(c.req.param("id"));
+  return c.json({ ok: removed });
+});
+// Media pública — la fetchean los adaptadores y Meta/WhatsApp. Se registra
+// DESPUÉS de las rutas estáticas de arriba para no comerse /galeria/manifest.
+app.get("/galeria/:id", async (c) => {
+  const { serveGalleryItem } = await import("./galeria/storage");
+  return serveGalleryItem(c.env, c.req.param("id"));
+});
 
 // Parse the provider payload via the channel adapter, derive the per-user DO id
 // (channel + ':' + channelUserId), and forward the normalized message to the

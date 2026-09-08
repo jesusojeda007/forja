@@ -312,6 +312,15 @@ export function renderConfig(
             <span class="text-dim text-[11.5px]">El bot recuerda cada cita la noche anterior ("¿sigue en pie?") y, si alguien no llega ni avisa, le escribe para reagendar. Necesita que agendes las citas con la herramienta de calendario del bot.</span>
           </span>
         </label>
+        <input type="hidden" name="galeria_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.galeria}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.galeria] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Galería</span>
+            <span class="text-dim text-[11.5px]">El bot manda fotos, videos y audios reales de tu negocio cuando el cliente quiere ver algo (el menú, el local, una propiedad…). Los archivos se cargan con Claude Code desde la URL de tu catálogo — pídele: "carga mi galería desde &lt;url&gt;".</span>
+          </span>
+        </label>
         <div style="display:flex;flex-direction:column;gap:4px">
           <span class="font-display font-semibold text-[13px] text-cream">Reportes automáticos</span>
           <span class="text-dim text-[11.5px]">Un resumen de tus números (chats, prospectos, temas, horas ahorradas) que te llega solo por Telegram y correo.</span>

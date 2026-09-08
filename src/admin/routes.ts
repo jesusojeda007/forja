@@ -528,6 +528,9 @@ adminApp.post("/config", async (c) => {
   if (form.get("noshows_present") !== null) {
     await repo.set(SETTING_KEYS.noshows, form.get(SETTING_KEYS.noshows) === "on" ? "on" : "off");
   }
+  if (form.get("galeria_present") !== null) {
+    await repo.set(SETTING_KEYS.galeria, form.get(SETTING_KEYS.galeria) === "on" ? "on" : "off");
+  }
   const reportesRaw = form.get(SETTING_KEYS.reportes);
   if (reportesRaw !== null) {
     const v = String(reportesRaw);
