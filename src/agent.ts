@@ -87,6 +87,26 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       return { acknowledged: true };
     }
 
+    // Encuesta de satisfacción (superpoder, opt-in): si hay una encuesta
+    // pendiente para esta conversación y el cliente respondió con una nota, se
+    // registra y NO se pasa el turno al bot. Best-effort: si falla, se procesa
+    // el mensaje normal.
+    if (payload.text && !payload.audioUrl && !payload.imageUrl) {
+      try {
+        const { captureSurveyReply } = await import("./encuestas/run");
+        const handled = await captureSurveyReply(
+          this.env,
+          conv.id,
+          payload.channel,
+          payload.channelUserId,
+          payload.text,
+        );
+        if (handled) return { acknowledged: true };
+      } catch (e) {
+        console.warn("[encuestas] capture failed:", e);
+      }
+    }
+
     // Guardrail anti-spam: el mismo mensaje por 3ª vez entre los últimos 5 →
     // la conversación descansa 1 hora, sin respuesta y sin gastar LLM.
     if (payload.text && !payload.audioUrl && !payload.imageUrl) {
@@ -349,6 +369,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
     let cachedTokens = 0;
     let toolCallCount = 0;
     let toolCallsMade: { toolName: string; input: unknown }[] = [];
+    let toolResultsMade: { toolName: string; output: unknown }[] = [];
     let usedModelId = modelId;
 
     // Corre el loop del LLM con un modelo dado; deja los resultados en las vars.
@@ -369,6 +390,7 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       // Persist what the agent DID (not just what it said): tool name + input,
       // feeding the dashboard's thread chips, stats and the Mi Agente counters.
       toolCallsMade = turn.toolCallsMade;
+      toolResultsMade = turn.toolResultsMade;
     };
 
     try {
@@ -420,6 +442,25 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       }
     }
 
+    const llmFailed = !assistantText || assistantText.startsWith("Algo falló de mi lado");
+    const calledHandoff = toolCallsMade.some((c) => c.toolName === "handoffHuman");
+
+    // Blindaje anti-invento: si el dueño lo activó y el bot no escaló ya,
+    // verifica que la respuesta se apoye en fuentes reales antes de enviarla.
+    if (cfg.blindaje && !llmFailed && !calledHandoff) {
+      const { runBlindajeGuard } = await import("./blindaje/guard");
+      const guard = await runBlindajeGuard({
+        env: this.env,
+        llm: cfg.llm,
+        conversationId: convId,
+        reply: assistantText,
+        businessContext: cfg.businessContext,
+        toolResults: toolResultsMade,
+        language: this.env.BOT_LANGUAGE,
+      });
+      assistantText = guard.text;
+    }
+
     // Persist assistant message (with usage + model_used + tool calls)
     await msgs.append(convId, "assistant", assistantText, {
       modelUsed: usedModelId,
@@ -429,10 +470,14 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       toolCalls: toolCallsMade.length > 0 ? toolCallsMade : undefined,
     });
 
-    // Update state for next turn
+    // Update state for next turn. lastSearchKbScore alimenta el selector de
+    // modelo (un score bajo sube al modelo inteligente el siguiente turno).
+    const { topKbScore } = await import("./blindaje/guard");
+    const kbScore = topKbScore(toolResultsMade);
     this.setState({
       ...this.state,
       toolCallsInLast2Turns: toolCallCount,
+      lastSearchKbScore: kbScore ?? this.state.lastSearchKbScore,
     });
 
     // Chunk + send via the channel adapter
@@ -455,5 +500,17 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
         { input: inputTokens, cached: cachedTokens, output: outputTokens },
       ).toFixed(5)}`,
     );
+
+    // Cazador de ventas (superpoder, opt-in): puntúa el calor del lead y, si
+    // cruzó a caliente, le avisa al dueño. Después de enviar — nunca demora la
+    // respuesta al cliente. Best-effort: si falla, no rompe el turno.
+    if (cfg.cazador) {
+      try {
+        const { runCazador } = await import("./cazador/run");
+        await runCazador(this.env, convId);
+      } catch (e) {
+        console.error("[cazador]", e);
+      }
+    }
   }
 }

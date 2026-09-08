@@ -9,11 +9,19 @@ import {
   resolveEventTypeId,
 } from "../integrations/calcom";
 import { applyResolvedDate, resolveDateInput, todayInTz } from "../time/resolveDate";
+import { Db } from "../db/client";
+import { AppointmentsRepo } from "../db/appointments";
+import type { ChannelId } from "../channels/shared";
 
 // El eventTypeId y la zona horaria se resuelven SIEMPRE en el servidor
 // (CALCOM_EVENT_TYPE_ID / CALCOM_EVENT_TYPES / CALCOM_TIMEZONE): el modelo no
 // conoce esos ids y no debe inventarlos.
-export function scheduleAppointmentTool(env: Env, _getConversationId: () => string | null) {
+export function scheduleAppointmentTool(
+  env: Env,
+  getConversationId: () => string | null,
+  getChannel: () => ChannelId | null = () => null,
+  getChannelUserId: () => string | null = () => null,
+) {
   return tool({
     description:
       "Consulta horarios libres y agenda citas reales en el calendario del negocio (Cal.com). " +
@@ -90,6 +98,31 @@ export function scheduleAppointmentTool(env: Env, _getConversationId: () => stri
           notes,
         });
         if (!r.ok) return { error: "calcom_failed" as const, reason: r.reason };
+
+        // Registro local para el superpoder "Recupera no-shows" (recordatorio +
+        // recuperación). Best-effort: si falla, la reserva ya quedó hecha.
+        const channel = getChannel();
+        const channelUserId = getChannelUserId();
+        const startIso = r.start ?? bookedStart;
+        if (env.DB && channel && channelUserId && startIso) {
+          const startTs = Date.parse(startIso);
+          if (Number.isFinite(startTs)) {
+            try {
+              await new AppointmentsRepo(new Db(env.DB)).create({
+                conversationId: getConversationId(),
+                channel,
+                channelUserId,
+                service,
+                attendeeName,
+                startTs,
+                bookingId: r.bookingId != null ? String(r.bookingId) : undefined,
+              });
+            } catch (e) {
+              console.error("[scheduleAppointment] no se pudo registrar la cita local:", e);
+            }
+          }
+        }
+
         return {
           booked: true,
           bookingId: r.bookingId,

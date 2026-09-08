@@ -434,6 +434,95 @@ export function renderConfig(
           value: settings[SETTING_KEYS.escalationKeywords] ?? "",
           placeholder: "queja, reembolso, hablar con alguien",
         })}
+        <input type="hidden" name="blindaje_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.blindaje}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.blindaje] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Blindaje anti-invento</span>
+            <span class="text-dim text-[11.5px]">El bot solo afirma datos (precios, horarios, disponibilidad, políticas) que estén en tu información o tu base de conocimiento. Si no lo sabe, lo confirma contigo en vez de improvisar. Verifica cada respuesta antes de enviarla — un poco más lenta y con un costo mínimo por mensaje.</span>
+          </span>
+        </label>
+        <input type="hidden" name="noshows_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.noshows}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.noshows] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Recupera no-shows</span>
+            <span class="text-dim text-[11.5px]">El bot recuerda cada cita la noche anterior ("¿sigue en pie?") y, si alguien no llega ni avisa, le escribe para reagendar. Necesita que agendes las citas con la herramienta de calendario del bot.</span>
+          </span>
+        </label>
+        <input type="hidden" name="galeria_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.galeria}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.galeria] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Galería</span>
+            <span class="text-dim text-[11.5px]">El bot manda fotos, videos y audios reales de tu negocio cuando el cliente quiere ver algo (el menú, el local, una propiedad…). Los archivos se cargan con Claude Code desde la URL de tu catálogo — pídele: "carga mi galería desde &lt;url&gt;".</span>
+          </span>
+        </label>
+        <input type="hidden" name="cazador_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.cazador}" value="on" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.cazador] === "on" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Cazador de ventas</span>
+            <span class="text-dim text-[11.5px]">El bot mide qué tan "listo para comprar" está cada cliente y te avisa al instante (Telegram y correo) cuando alguien se pone caliente: quién es, por qué, y el link para cerrarlo. En el Resumen ves la lista priorizada.</span>
+          </span>
+        </label>
+        <input type="hidden" name="encuestas_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.encuestas}" value="auto" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.encuestas] === "auto" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Encuestas de satisfacción</span>
+            <span class="text-dim text-[11.5px]">Cuando una conversación se cierra (hubo prospecto, cita o un humano la resolvió), el bot manda una encuesta corta: "¿cómo estuvo la atención, del 1 al 5?". Si alguien responde 1 o 2, te avisamos al instante. En el Resumen ves el promedio y los últimos comentarios.</span>
+          </span>
+        </label>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span class="font-display font-semibold text-[13px] text-cream">Reportes automáticos</span>
+          <span class="text-dim text-[11.5px]">Un resumen de tus números (chats, prospectos, temas, horas ahorradas) que te llega solo por Telegram y correo.</span>
+          <select name="${SETTING_KEYS.reportes}" style="${SELECT_STYLE}">
+            ${["off", "semanal", "diario"]
+              .map(
+                (v) =>
+                  `<option value="${v}" ${(settings[SETTING_KEYS.reportes] || "off") === v ? "selected" : ""}>${
+                    { off: "Apagado", semanal: "Semanal (lunes)", diario: "Diario" }[v]
+                  }</option>`,
+              )
+              .join("")}
+          </select>
+          <button type="submit" formaction="/admin/config/reporte-test" formmethod="POST"
+                  class="text-[11px]" style="align-self:flex-start;border:1px solid var(--line);color:var(--cream);padding:5px 10px;cursor:pointer;background:none;margin-top:2px">
+            Enviar reporte de prueba ahora
+          </button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span class="font-display font-semibold text-[13px] text-cream">Calculadora de Retorno</span>
+          <span class="text-dim text-[11.5px]">Con estos valores, la pestaña <b class="text-cream">Retorno</b> traduce la actividad del bot a plata. Útil para justificar la mensualidad ante el cliente.</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Valor de 1 hora de atención
+              <input type="number" min="0" step="0.5" name="${SETTING_KEYS.roiHourlyRate}" value="${settings[SETTING_KEYS.roiHourlyRate] ?? ""}" placeholder="8"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Moneda
+              <input name="${SETTING_KEYS.roiCurrency}" value="${settings[SETTING_KEYS.roiCurrency] ?? ""}" placeholder="USD" maxlength="6"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Tu mensualidad al cliente (para el múltiplo)
+              <input type="number" min="0" step="1" name="${SETTING_KEYS.roiMonthlyFee}" value="${settings[SETTING_KEYS.roiMonthlyFee] ?? ""}" placeholder="—"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:2px" class="text-dim text-[11px]">
+              Valor de una cita recuperada
+              <input type="number" min="0" step="1" name="${SETTING_KEYS.roiNoShowValue}" value="${settings[SETTING_KEYS.roiNoShowValue] ?? ""}" placeholder="0"
+                     style="background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:8px 10px;font-size:12.5px">
+            </label>
+          </div>
+        </div>
         <fieldset style="display:flex;flex-direction:column;gap:8px;border:none;margin:0;padding:0">
           <legend class="font-display font-semibold text-[13.5px] text-cream">Avanzado · prompt del agente</legend>
           ${renderTextArea({

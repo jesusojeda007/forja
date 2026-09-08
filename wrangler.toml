@@ -38,6 +38,17 @@ BOT_TIER = "{{BOT_TIER}}"  # 'free' | 'pro'
 BUFFER_SECONDS = "15"
 DASHBOARD_BASE_URL = "https://horizontes-bot-{{BOT_SLUG}}.workers.dev"
 
+# Modo Agencia · whitelabel del panel (opcional — para quien revende Forja).
+# Descomenta y ajusta; AGENCY_NAME enciende el modo y apaga el upsell a Forja+.
+# AGENCY_NAME = "Acme Bots"
+# AGENCY_ACCENT = "#7c3aed"           # #rgb o #rrggbb
+# AGENCY_LOGO_URL = "https://cdn.acme.com/logo.png"   # solo https
+# AGENCY_HIDE_POWERED = "1"           # esconde el "hecho con Forja" del pie
+#   CLIENT_PASSWORD  (secret)  segundo password del panel → vista recortada para
+#                              el cliente final (sin Config, Conexiones, Flujo,
+#                              Conocimiento, Mejoras, Campañas ni Costos).
+#                              wrangler secret put CLIENT_PASSWORD
+
 # Secrets (set with `wrangler secret put <NAME>` — never commit values):
 #   ANTHROPIC_API_KEY          required — Claude API
 #   DASHBOARD_PASSWORD         required (Pro) — HTTP Basic Auth for /admin (user: admin)

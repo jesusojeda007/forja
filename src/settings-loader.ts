@@ -25,6 +25,12 @@ export interface AgentConfig {
   monthlyBudgetUsd?: number;
   /** BYO-LLM del dashboard (proveedor / API key / modelo). */
   llm: LlmOverrides;
+  /** Blindaje anti-invento activo (bloque de prompt estricto + chequeo post-generación). */
+  blindaje: boolean;
+  /** Contexto del negocio en crudo (fuentes confirmadas) — lo usa el chequeo de blindaje. */
+  businessContext: string;
+  /** Cazador de ventas activo (puntúa el lead tras cada turno + avisa al dueño). */
+  cazador: boolean;
 }
 
 /** Extract the BYO-LLM overrides from a settings snapshot. */
@@ -122,7 +128,14 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
     ...parseCsvList(get(SETTING_KEYS.disabledTools)),
     ...(niche.disabledTools ?? []),
   ]);
-  const enabledToolNames = toolNames.filter((n) => !disabledTools.has(n));
+  // La Galería es opt-in: la tool sendGalleryItem sólo se anuncia con galeria="on".
+  const galeriaOn = get(SETTING_KEYS.galeria) === "on";
+  const enabledToolNames = toolNames.filter(
+    (n) => !disabledTools.has(n) && (n !== "sendGalleryItem" || galeriaOn),
+  );
+
+  const blindaje = get(SETTING_KEYS.blindaje) === "on";
+  const cazador = get(SETTING_KEYS.cazador) === "on";
 
   const systemPrompt =
     systemPromptOverride ??
@@ -133,6 +146,7 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
       lessons,
       customInstructions,
       nicheRules,
+      blindaje,
     });
 
   const bufferSecondsRaw = get(SETTING_KEYS.bufferSeconds);
@@ -171,5 +185,8 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
     temperature,
     monthlyBudgetUsd,
     llm: llmOverridesFrom(settings),
+    blindaje,
+    businessContext,
+    cazador,
   };
 }

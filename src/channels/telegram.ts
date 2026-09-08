@@ -134,4 +134,24 @@ export const telegramAdapter: ChannelAdapter = {
       body: JSON.stringify({ chat_id: channelUserId, photo: url, caption }),
     });
   },
+
+  async sendMedia({ channelUserId, url, kind, caption }, env: Env) {
+    const token = env.TELEGRAM_BOT_TOKEN;
+    if (!token) throw new Error("TELEGRAM_BOT_TOKEN not set");
+    const { method, field } =
+      kind === "video"
+        ? { method: "sendVideo", field: "video" }
+        : kind === "audio"
+          ? { method: "sendVoice", field: "voice" }
+          : { method: "sendPhoto", field: "photo" };
+    const res = await fetch(`${TG_API}${token}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: channelUserId, [field]: url, caption }),
+    });
+    if (!res.ok) {
+      const err = await res.text().catch(() => "");
+      console.error(`telegram sendMedia ${method} ${res.status}: ${err}`);
+    }
+  },
 };

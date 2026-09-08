@@ -17,6 +17,8 @@ export interface LlmTurnResult {
   cachedTokens: number;
   toolCallCount: number;
   toolCallsMade: { toolName: string; input: unknown }[];
+  /** Resultados devueltos por las tools en este turno (para el blindaje anti-invento). */
+  toolResultsMade: { toolName: string; output: unknown }[];
 }
 
 function callArgs(args: LlmTurnArgs) {
@@ -46,6 +48,12 @@ function fromSteps(steps: any[] | undefined) {
       (s.toolCalls ?? []).map((tc: any) => ({
         toolName: tc.toolName as string,
         input: tc.input,
+      })),
+    ),
+    toolResultsMade: list.flatMap((s) =>
+      (s.toolResults ?? []).map((tr: any) => ({
+        toolName: tr.toolName as string,
+        output: tr.output ?? tr.result,
       })),
     ),
   };

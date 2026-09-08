@@ -8,6 +8,7 @@ import { InsightsRepo, type InsightWithConversation } from "../../db/insights";
 import { countPending } from "../../insights/analyzer";
 import { channelLabel } from "../../channels/labels";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 
 function esc(s: string): string {
   return s.replace(
@@ -70,7 +71,11 @@ function channelChip(channel: string | null): string {
   return `<span class="text-[9px] tracking-wide border px-1.5 ${cls}">${esc(channelLabel(channel))}</span>`;
 }
 
-export async function renderInsights(env: Env, analyzedParam?: string): Promise<string> {
+export async function renderInsights(
+  env: Env,
+  analyzedParam?: string,
+  role: AdminRole = "owner",
+): Promise<string> {
   const db = new Db(env.DB);
   const repo = new InsightsRepo(db);
   const sevenDays = Date.now() - 7 * 86_400_000;
@@ -213,5 +218,5 @@ export async function renderInsights(env: Env, analyzedParam?: string): Promise<
       ${recentCard}
     </div>`;
 
-  return layout({ title: "Insights", activeTab: "insights", body, env });
+  return layout({ title: "Insights", activeTab: "insights", body, env, role });
 }

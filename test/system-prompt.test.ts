@@ -70,6 +70,17 @@ describe("renderSystemPrompt", () => {
     expect(blank).not.toContain("<instrucciones_del_negocio>");
   });
 
+  it("inyecta el bloque <blindaje> solo cuando blindaje=true", () => {
+    const on = renderSystemPrompt({ ...input, blindaje: true });
+    expect(on).toContain("<blindaje>");
+    expect(on).toContain("MODO BLINDAJE ACTIVO");
+    expect(on).toContain("handoffHuman");
+
+    const off = renderSystemPrompt(input);
+    expect(off).not.toContain("<blindaje>");
+    expect(off).not.toContain("{{BLINDAJE}}");
+  });
+
   it("inserts nichoPlaybook when provided and empty string when omitted", () => {
     const withPlaybook = renderSystemPrompt({
       ...input,

@@ -13,6 +13,15 @@ export interface Env {
   // Vars (member-set)
   BOT_NAME: string;
   PEER_BOTS?: string; // JSON [{name,url}] — otras instancias para el selector de proyectos
+  // Modo Agencia · whitelabel del panel (todo opcional, ver src/agencia/branding.ts).
+  AGENCY_NAME?: string;        // enciende el modo agencia + reemplaza "Forja" en el panel
+  AGENCY_ACCENT?: string;      // color de acento #rgb / #rrggbb
+  AGENCY_LOGO_URL?: string;    // logo del sidebar (solo https)
+  AGENCY_HIDE_POWERED?: string; // "1" esconde el "hecho con Forja" del pie
+  // Modo Agencia · rol cliente (secret). Segundo password del panel: entra a una
+  // vista recortada (sin Config, Conexiones, Flujo, Conocimiento, Mejoras,
+  // Campañas ni Costos). Vacío = el rol cliente no existe. Ver src/admin/auth.ts.
+  CLIENT_PASSWORD?: string;
   WA_DAILY_TEMPLATE_CAP?: string; // tope diario de plantillas HSM (default 250 — tier 1 de Meta)
   BUSINESS_NAME: string;
   BOT_LANGUAGE: string;
@@ -80,6 +89,9 @@ export interface Env {
   // El envío es a zernio.com/api/v1/inbox/conversations/<id>/messages (Bearer).
   ZERNIO_API_KEY?: string;            // secret: API key de Zernio (sk_...); Bearer para enviar y para la media
   ZERNIO_WEBHOOK_SECRET?: string;     // secret: firma X-Zernio-Signature (HMAC-SHA256 hex del cuerpo)
+  // Galería (superpoder): guarda los endpoints de gestión (/galeria/manifest,
+  // POST /galeria/items, DELETE /galeria/items/:id) que usa el agente/CLI.
+  GALERIA_TOKEN?: string;             // secret: header X-Galeria-Token
   XAI_API_KEY?: string;             // xAI (Grok) — proveedor LLM alterno (ver src/llm/provider.ts)
 
   // ── Cal.com (agenda real para scheduleAppointment) ───────────────────────

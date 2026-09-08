@@ -2,10 +2,14 @@
  * Admin dashboard routes (Hono sub-app mounted at `/admin`).
  *
  * Auth: a normal login form at `/admin/login` that sets a signed session
- * cookie (see src/admin/session.ts). HTTP Basic Auth still works in parallel
- * for curl / API clients. The single password lives in `DASHBOARD_PASSWORD`
- * (username is always "admin"). A browser with neither a session nor Basic
- * Auth is redirected to the login form; non-browser requests get a 401.
+ * cookie (see src/admin/session.ts) — sólo para el password completo
+ * (DASHBOARD_PASSWORD, rol "owner"). HTTP Basic Auth sigue funcionando en
+ * paralelo para curl / clientes de API y es la única vía para el password de
+ * cliente (CLIENT_PASSWORD, rol "client" — Modo Agencia, vista recortada). Un
+ * wildcard middleware resuelve el ROL (sesión → siempre "owner"; si no,
+ * `resolveRole` sobre el header Authorization) y lo deja en `c.get("role")`.
+ * Un navegador sin sesión ni Basic Auth válidos es redirigido al formulario de
+ * login; peticiones no-navegador reciben 401.
  */
 import { parsePeerBots } from "./projects";
 import { Hono } from "hono";
@@ -13,11 +17,12 @@ import { generateText } from "ai";
 import { createModel } from "../llm/provider";
 import { loadLlmOverrides } from "../settings-loader";
 import type { Env } from "../env";
-import { checkBasicCredentials, timingSafeEqual } from "./auth";
+import { timingSafeEqual, resolveRole, CLIENT_HIDDEN_TABS, type AdminRole } from "./auth";
 import { hasAdminSession, startAdminSession, endAdminSession } from "./session";
 import { layout, renderUpgrade, loginPage } from "./views/layout";
 import { isPro } from "../config";
 import { renderOverview } from "./views/overview";
+import { renderRoi } from "./views/roi";
 import { renderStats } from "./views/stats";
 import { renderCosts } from "./views/costs";
 import {
@@ -60,7 +65,7 @@ import { renderBusinessContext } from "../businessContext";
 import { getNiche } from "../niches";
 import { parseStoreRules } from "../niches/rules";
 
-export const adminApp = new Hono<{ Bindings: Env }>();
+export const adminApp = new Hono<{ Bindings: Env; Variables: { role: AdminRole } }>();
 
 // Normaliza la barra final: "/admin/" o "/admin/config/" → sin barra. Hono
 // monta el sub-app en "/admin" y una ruta con barra final no matchea ningún
@@ -76,21 +81,36 @@ adminApp.use("*", async (c, next) => {
 
 // Guard every admin route. Dos formas de entrar:
 //   1. Cookie de sesión firmada — el dueño hace login una vez en /admin/login
-//      con un formulario normal (ver src/admin/session.ts).
-//   2. HTTP Basic Auth — para curl, clientes de API y compatibilidad.
-// Un navegador sin sesión ni Basic Auth se redirige al formulario de login
+//      con un formulario normal (ver src/admin/session.ts). Rol siempre "owner"
+//      (no hay login-form para el password de cliente).
+//   2. HTTP Basic Auth — para curl, clientes de API y compatibilidad, y la única
+//      vía para el rol "client" (Modo Agencia). Resuelve el ROL con `resolveRole`:
+//      password completo (DASHBOARD_PASSWORD) → "owner", password de cliente
+//      (CLIENT_PASSWORD) → "client" (vista recortada).
+// Un navegador sin sesión ni Basic Auth válidos se redirige al formulario de login
 // (no un 401 con diálogo nativo). Peticiones no-navegador siguen recibiendo 401.
-// DASHBOARD_PUBLIC="1" apaga el guard por completo (decisión de la instancia).
+// DASHBOARD_PUBLIC="1" apaga el guard por completo (decisión de la instancia) → "owner".
 adminApp.use("*", async (c, next) => {
-  if (c.env.DASHBOARD_PUBLIC === "1") return next();
+  if (c.env.DASHBOARD_PUBLIC === "1") {
+    c.set("role", "owner");
+    return next();
+  }
 
   // El sub-app puede montarse en "/admin" (prod) o consultarse suelto (tests);
   // normalizamos a la ruta relativa para comparar.
   const rel = c.req.path.replace(/^\/admin(?=\/|$)/, "") || "/";
   if (rel === "/login" || rel === "/logout") return next();
 
-  if (await hasAdminSession(c)) return next();
-  if (checkBasicCredentials(c.req.header("authorization"), c.env)) return next();
+  if (await hasAdminSession(c)) {
+    c.set("role", "owner");
+    return next();
+  }
+
+  const role = resolveRole(c.req.header("authorization"), c.env);
+  if (role) {
+    c.set("role", role);
+    return next();
+  }
 
   const wantsHtml =
     c.req.method === "GET" && (c.req.header("accept") ?? "").includes("text/html");
@@ -130,6 +150,19 @@ adminApp.post("/logout", (c) => {
   return c.redirect("/admin/login");
 });
 
+// Rol cliente (Modo Agencia): el nav ya esconde los tabs peligrosos, pero eso
+// no es seguridad. Si un cliente navega directo a una ruta bloqueada (URL,
+// bookmark), lo devolvemos al Resumen. Cubre GET y POST bajo esos prefijos.
+const CLIENT_BLOCKED = CLIENT_HIDDEN_TABS.map((id) => `/${id}`);
+adminApp.use("*", async (c, next) => {
+  if (c.get("role") !== "client") return next();
+  const rel = c.req.path.replace(/^\/admin/, "");
+  if (CLIENT_BLOCKED.some((p) => rel === p || rel.startsWith(p + "/"))) {
+    return c.redirect("/admin/overview");
+  }
+  return next();
+});
+
 // Gate de tier: el panel free ve el nav Pro bloqueado; si aun así navega a una
 // ruta Pro (URL directa, bookmark, click al item bloqueado), servimos la página
 // de upgrade en vez de la vista real. Los datos Pro nunca se exponen en free.
@@ -155,15 +188,23 @@ adminApp.get("/upgrade", (c) => c.html(renderUpgrade(c.env)));
 adminApp.get("/", (c) => c.redirect("/admin/overview"));
 
 // Selector de proyectos (header): instancia actual + hermanas de PEER_BOTS.
+// El rol cliente no ve los otros bots de la agencia.
 adminApp.get("/projects", (c) =>
-  c.json({ current: c.env.BOT_NAME ?? "Mi bot", peers: parsePeerBots(c.env) }),
+  c.json({
+    current: c.env.BOT_NAME ?? "Mi bot",
+    peers: c.get("role") === "client" ? [] : parsePeerBots(c.env),
+  }),
 );
 
 // --- Read-only tabs ---------------------------------------------------------
 
-adminApp.get("/overview", async (c) => c.html(await renderOverview(c.env)));
+adminApp.get("/overview", async (c) => c.html(await renderOverview(c.env, c.get("role"))));
 
-adminApp.get("/stats", async (c) => c.html(await renderStats(c.env)));
+// Retorno / ROI (Modo Agencia · pieza C). Visible también para el cliente — es
+// la justificación de la mensualidad.
+adminApp.get("/roi", async (c) => c.html(await renderRoi(c.env, c.get("role"))));
+
+adminApp.get("/stats", async (c) => c.html(await renderStats(c.env, c.get("role"))));
 
 adminApp.get("/costs", async (c) => c.html(await renderCosts(c.env, c.req.query("saved") === "1")));
 
@@ -297,11 +338,15 @@ adminApp.post("/mejoras/lessons/remove", async (c) => {
 // Inbox (F1): two-pane view. ?c=<id> selects the thread; ?f/?q filter the list.
 adminApp.get("/conversations", async (c) =>
   c.html(
-    await renderInbox(c.env, {
-      search: c.req.query("q"),
-      filter: c.req.query("f"),
-      selectedId: c.req.query("c"),
-    }),
+    await renderInbox(
+      c.env,
+      {
+        search: c.req.query("q"),
+        filter: c.req.query("f"),
+        selectedId: c.req.query("c"),
+      },
+      c.get("role"),
+    ),
   ),
 );
 
@@ -340,7 +385,7 @@ adminApp.get("/insights", async (c) => {
   } catch {
     // no executionCtx (tests) — render without background catch-up
   }
-  return c.html(await renderInsights(c.env, c.req.query("analyzed") ?? undefined));
+  return c.html(await renderInsights(c.env, c.req.query("analyzed") ?? undefined, c.get("role")));
 });
 
 // "Analizar ahora": grade up to 10 pending conversations inline, then redirect
@@ -426,18 +471,18 @@ adminApp.get("/embudo", async (c) => c.html(await renderEmbudo(c.env)));
 adminApp.get("/embudo/board", async (c) => c.html(await renderEmbudoBoard(c.env)));
 
 adminApp.get("/clientes", async (c) =>
-  c.html(await renderClientes(c.env, { q: c.req.query("q") ?? "", f: c.req.query("f") ?? "" })),
+  c.html(await renderClientes(c.env, { q: c.req.query("q") ?? "", f: c.req.query("f") ?? "" }, c.get("role"))),
 );
 
 adminApp.get("/clientes/:cu", async (c) =>
-  c.html(await renderCliente(c.env, decodeURIComponent(c.req.param("cu")))),
+  c.html(await renderCliente(c.env, decodeURIComponent(c.req.param("cu")), c.get("role"))),
 );
 
-adminApp.get("/leads", async (c) => c.html(await renderLeads(c.env)));
+adminApp.get("/leads", async (c) => c.html(await renderLeads(c.env, c.get("role"))));
 
 adminApp.get("/pedidos", async (c) => c.html(await renderPedidos(c.env)));
 
-adminApp.get("/tickets", async (c) => c.html(await renderTickets(c.env)));
+adminApp.get("/tickets", async (c) => c.html(await renderTickets(c.env, c.get("role"))));
 
 // Conexiones: mapa de canales con estado verde/gris (paso 4 del onboarding).
 adminApp.get("/conexiones", (c) => c.html(renderConexiones(c.env)));
@@ -520,6 +565,19 @@ adminApp.post("/config/qr-upload", async (c) => {
   }
 });
 
+// "Enviar reporte de prueba ahora": arma y manda un reporte al dueño de
+// inmediato, con una period_key propia para no consumir la del reporte real.
+adminApp.post("/config/reporte-test", async (c) => {
+  try {
+    const { runReport } = await import("../reportes/run");
+    const r = await runReport(c.env, { force: true, forceCadence: "semanal" });
+    return c.redirect(`/admin/config?reporte=${r.sent ? "enviado" : "sincanal"}`);
+  } catch (e) {
+    console.error("[reportes] prueba falló:", e);
+    return c.redirect("/admin/config?reporte=error");
+  }
+});
+
 // Prueba de la config BYO-LLM guardada: un generateText mínimo con el modelo
 // resuelto (settings > env). Redirige de vuelta con el resultado en la query.
 adminApp.get("/config/llm-test", async (c) => {
@@ -566,11 +624,38 @@ adminApp.post("/config", async (c) => {
     SETTING_KEYS.paymentQrUrl,
     SETTING_KEYS.paymentInstructions,
     SETTING_KEYS.catalogSourceUrl,
+    SETTING_KEYS.roiHourlyRate,
+    SETTING_KEYS.roiCurrency,
+    SETTING_KEYS.roiMonthlyFee,
+    SETTING_KEYS.roiNoShowValue,
   ];
   for (const key of textKeys) {
     const raw = form.get(key);
     if (raw === null) continue;
     await repo.set(key, String(raw).trim());
+  }
+
+  // Blindaje: checkbox. El form de esa sección lleva un marcador oculto para
+  // distinguir "desmarcado" (no llega el campo) de "otro form" (ni marcador).
+  if (form.get("blindaje_present") !== null) {
+    await repo.set(SETTING_KEYS.blindaje, form.get(SETTING_KEYS.blindaje) === "on" ? "on" : "off");
+  }
+  if (form.get("noshows_present") !== null) {
+    await repo.set(SETTING_KEYS.noshows, form.get(SETTING_KEYS.noshows) === "on" ? "on" : "off");
+  }
+  if (form.get("galeria_present") !== null) {
+    await repo.set(SETTING_KEYS.galeria, form.get(SETTING_KEYS.galeria) === "on" ? "on" : "off");
+  }
+  if (form.get("cazador_present") !== null) {
+    await repo.set(SETTING_KEYS.cazador, form.get(SETTING_KEYS.cazador) === "on" ? "on" : "off");
+  }
+  if (form.get("encuestas_present") !== null) {
+    await repo.set(SETTING_KEYS.encuestas, form.get(SETTING_KEYS.encuestas) === "auto" ? "auto" : "off");
+  }
+  const reportesRaw = form.get(SETTING_KEYS.reportes);
+  if (reportesRaw !== null) {
+    const v = String(reportesRaw);
+    await repo.set(SETTING_KEYS.reportes, ["semanal", "diario"].includes(v) ? v : "off");
   }
 
   // BYO-LLM: proveedor y modelo se guardan tal cual (allow-list de valores).

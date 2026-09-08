@@ -49,6 +49,21 @@ export const MANYCHAT_SECRET_HEADER = "X-Api-Key";
  * while thinking otherwise — the exact failure this function exists to remove —
  * so it fails closed and says why.
  */
+/**
+ * Guard de los endpoints de gestión de la Galería (`/galeria/manifest`,
+ * `POST /galeria/items`, `DELETE /galeria/items/:id`). Header `X-Galeria-Token`
+ * contra el secret GALERIA_TOKEN, comparación en tiempo constante. Fail-closed:
+ * sin secret o sin header → false. (El `GET /galeria/:id` es público y NO pasa
+ * por aquí — es la media que los canales y Meta fetchean.)
+ */
+export function galeriaTokenOk(req: Request, env: Env): boolean {
+  const expected = env.GALERIA_TOKEN?.trim();
+  if (!expected) return false;
+  const received = (req.headers.get("x-galeria-token") ?? "").trim();
+  if (!received) return false;
+  return tokensMatch(received, expected);
+}
+
 export function manychatWebhookAllowed(req: Request, env: Env): boolean {
   const configured = env.MANYCHAT_WEBHOOK_SECRET;
   if (configured === undefined) return true; // never set → previous behaviour

@@ -192,3 +192,62 @@ describe("resolveAgentConfig — learned lessons (flywheel)", () => {
     expect(cfg.systemPrompt).not.toContain("<lecciones_aprendidas>");
   });
 });
+
+describe("resolveAgentConfig — cazador", () => {
+  it("default apagado; con cazador=on queda true", async () => {
+    expect((await resolveAgentConfig(env, TOOLS)).cazador).toBe(false);
+    await repo.set(SETTING_KEYS.cazador, "on");
+    expect((await resolveAgentConfig(env, TOOLS)).cazador).toBe(true);
+  });
+});
+
+describe("resolveAgentConfig — galería", () => {
+  const TOOLS_G = ["searchKb", "sendGalleryItem"];
+
+  it("sin galeria=on, sendGalleryItem NO está en enabledToolNames ni en el prompt", async () => {
+    const cfg = await resolveAgentConfig(env, TOOLS_G);
+    expect(cfg.enabledToolNames).not.toContain("sendGalleryItem");
+    expect(cfg.systemPrompt).not.toContain("sendGalleryItem");
+  });
+
+  it("con galeria=on, sendGalleryItem se habilita y aparece en el prompt", async () => {
+    await repo.set(SETTING_KEYS.galeria, "on");
+    const cfg = await resolveAgentConfig(env, TOOLS_G);
+    expect(cfg.enabledToolNames).toContain("sendGalleryItem");
+    expect(cfg.systemPrompt).toContain("sendGalleryItem");
+  });
+});
+
+describe("resolveAgentConfig — blindaje", () => {
+  it("default: blindaje apagado y sin bloque en el prompt", async () => {
+    const cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(false);
+    expect(cfg.systemPrompt).not.toContain("<blindaje>");
+  });
+
+  it("con blindaje=on: cfg.blindaje true y el bloque <blindaje> entra al prompt", async () => {
+    await repo.set(SETTING_KEYS.blindaje, "on");
+    const cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(true);
+    expect(cfg.systemPrompt).toContain("<blindaje>");
+    expect(cfg.systemPrompt).toContain("handoffHuman");
+  });
+
+  it("valor distinto de 'on' se trata como apagado", async () => {
+    await repo.set(SETTING_KEYS.blindaje, "off");
+    let cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(false);
+
+    await repo.set(SETTING_KEYS.blindaje, "1");
+    cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(false);
+  });
+
+  it("un system_prompt_override manual NO lleva bloque de blindaje", async () => {
+    await repo.set(SETTING_KEYS.blindaje, "on");
+    await repo.set(SETTING_KEYS.systemPromptOverride, "MI PROMPT");
+    const cfg = await resolveAgentConfig(env, TOOLS);
+    expect(cfg.blindaje).toBe(true); // el chequeo post-generación igual corre
+    expect(cfg.systemPrompt).toBe("MI PROMPT");
+  });
+});

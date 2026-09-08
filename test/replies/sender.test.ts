@@ -3,6 +3,7 @@ import {
   sendChunkedReply,
   pickAdapter,
   chunkDelayMs,
+  sendChannelMedia,
 } from "../../src/replies/sender";
 import type { ChannelAdapter } from "../../src/channels/shared";
 
@@ -66,6 +67,34 @@ describe("chunkDelayMs", () => {
   it("scales proportionally inside the band", () => {
     const mid = "y".repeat(40); // 40 * 30 = 1200, within [800, 1500]
     expect(chunkDelayMs(mid)).toBe(1200);
+  });
+});
+
+describe("sendChannelMedia", () => {
+  const req = { channel: "telegram" as const, channelUserId: "u1", url: "https://x/v.mp4", kind: "video" as const, caption: "mira" };
+
+  it("usa adapter.sendMedia cuando existe", async () => {
+    const sendMedia = vi.fn(async () => {});
+    await sendChannelMedia({ sendMedia, sendReply: vi.fn(), parseIncoming: vi.fn() } as any, req, {} as any);
+    expect(sendMedia).toHaveBeenCalledWith(req, {});
+  });
+
+  it("cae a sendImage para imágenes cuando no hay sendMedia", async () => {
+    const sendImage = vi.fn(async () => {});
+    await sendChannelMedia(
+      { sendImage, sendReply: vi.fn(), parseIncoming: vi.fn() } as any,
+      { ...req, kind: "image", url: "https://x/p.jpg" },
+      {} as any,
+    );
+    expect(sendImage).toHaveBeenCalled();
+  });
+
+  it("último recurso: manda la URL (con caption) como texto", async () => {
+    const sendReply = vi.fn(async () => {});
+    await sendChannelMedia({ sendReply, parseIncoming: vi.fn() } as any, req, {} as any);
+    const arg = (sendReply.mock.calls[0] as any[])[0];
+    expect(arg.chunks[0]).toContain("https://x/v.mp4");
+    expect(arg.chunks[0]).toContain("mira");
   });
 });
 

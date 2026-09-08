@@ -14,6 +14,7 @@ import { apartarProductoTool } from "./apartarProducto";
 import { estadoPedidoTool } from "./estadoPedido";
 import { anotarEnEsperaTool } from "./anotarEnEspera";
 import { getNiche } from "../niches";
+import { sendGalleryItemTool } from "./sendGalleryItem";
 import type { ChannelId } from "../channels/shared";
 
 export interface ToolContext {
@@ -35,10 +36,18 @@ export function buildTools(ctx: ToolContext) {
     pauseBot: pauseBotTool(ctx.env, ctx.getConversationId),
     snoozeUser: snoozeUserTool(ctx.env, ctx.getConversationId),
     captureLead: captureLeadTool(ctx.env, ctx.getConversationId),
-    scheduleAppointment: scheduleAppointmentTool(ctx.env, ctx.getConversationId),
+    scheduleAppointment: scheduleAppointmentTool(
+      ctx.env,
+      ctx.getConversationId,
+      ctx.getChannel,
+      ctx.getChannelUserId,
+    ),
     // El QR de pago no gatea a Pro: es la herramienta de cierre de venta del
     // nicho tienda y no requiere ningún servicio externo de Forja.
     sendPaymentQr: sendPaymentQrTool(ctx.env, ctx.getConversationId, ctx.getChannel, ctx.getChannelUserId),
+    // Galería (superpoder): settings-loader la excluye de enabledToolNames salvo
+    // que settings.galeria = "on", así el prompt sólo la anuncia cuando aplica.
+    sendGalleryItem: sendGalleryItemTool(ctx.env, ctx.getConversationId, ctx.getChannel, ctx.getChannelUserId),
   };
 
   // Pro tier additions

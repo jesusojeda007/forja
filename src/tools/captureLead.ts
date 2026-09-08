@@ -33,12 +33,18 @@ export function captureLeadTool(env: Env, getConversationId: () => string | null
         .string()
         .optional()
         .describe("Link de Google Maps si el cliente compartió su ubicación"),
+      metadata: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe(
+          "Campos propios del giro que el panel muestra como columnas (ej. { servicio: 'Corte', fecha_cita: '2026-09-10 17:00' }). Usa las llaves que indique el playbook del nicho.",
+        ),
     }),
-    execute: async ({ name, contact, intent, notes, ...rest }) => {
+    execute: async ({ name, contact, intent, notes, metadata: nicheMetadata, ...rest }) => {
       const convId = getConversationId();
       const leads = new LeadsRepo(new Db(env.DB));
-      // Campos estructurados → metadata (columnas del panel + datos de entrega).
-      const metadata: Record<string, string | number> = {};
+      // Metadata genérica del nicho + campos estructurados de tienda (entrega) → un solo objeto.
+      const metadata: Record<string, string | number> = { ...(nicheMetadata ?? {}) };
       for (const [k, v] of Object.entries(rest)) {
         if (v !== undefined && v !== null && v !== "") metadata[k] = v;
       }

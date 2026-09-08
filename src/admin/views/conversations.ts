@@ -19,6 +19,7 @@ import { costOfUsage, type ModelId } from "../../pricing";
 import { channelLabel, channelIcon } from "../../channels/labels";
 import { STAGES, STAGE_BY_ID, stageOf, isStageId, STAGE_SIGNAL_COLUMNS } from "../stages";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 import { fmtDateTime } from "../format";
 
 /** Tiempo relativo corto en español (ej. "hace 5 min", "hace 2 h", "hace 3 d"). */
@@ -391,7 +392,7 @@ export function renderSuggestionBox(text: string): string {
 
 // --- Full page -----------------------------------------------------------------
 
-export async function renderInbox(env: Env, p: InboxParams): Promise<string> {
+export async function renderInbox(env: Env, p: InboxParams, role: AdminRole = "owner"): Promise<string> {
   const db = new Db(env.DB);
   const now = Date.now();
 
@@ -467,5 +468,5 @@ export async function renderInbox(env: Env, p: InboxParams): Promise<string> {
       </div>
     </div>`;
 
-  return layout({ title: "Conversaciones", activeTab: "conversations", body, env });
+  return layout({ title: "Conversaciones", activeTab: "conversations", body, env, role });
 }

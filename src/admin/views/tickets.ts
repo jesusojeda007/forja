@@ -3,6 +3,7 @@ import { Db } from "../../db/client";
 import { getNiche } from "../../niches";
 import { channelLabel, channelIcon } from "../../channels/labels";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 import { fmtDateTime } from "../format";
 
 function esc(v: string | null | undefined): string {
@@ -33,7 +34,7 @@ interface TicketRow {
   last_customer_msg: string | null;
 }
 
-export async function renderTickets(env: Env): Promise<string> {
+export async function renderTickets(env: Env, role: AdminRole = "owner"): Promise<string> {
   const db = new Db(env.DB);
   // Ticket + de qué cliente vino + su último mensaje, en una sola consulta.
   const open = await db.all<TicketRow>(
@@ -104,5 +105,5 @@ export async function renderTickets(env: Env): Promise<string> {
          </div>`
       : `<p class="text-dim" style="font-size:12px;margin:-4px 0 16px">${open.length} consulta(s) que el bot pasó a una persona. Abrí la conversación para responderle al cliente vos mismo (el bot queda pausado); después marcá el ticket como resuelto.</p>${list}`;
 
-  return layout({ title: "Tickets", activeTab: "tickets", body, env });
+  return layout({ title: "Tickets", activeTab: "tickets", body, env, role });
 }

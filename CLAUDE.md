@@ -44,6 +44,7 @@ Cloudflare (~gratis, ~$5/mes con tráfico) y el cerebro es su propia llave de IA
 - `/configurar-mi-chatbot` — instalación de cero (las 4 fases).
 - `/reporte` — informe mensual de valor para el cliente.
 - `/exportar` — exporta leads y conversaciones (CSV/JSON).
+- `/galeria` — carga la Galería del bot (fotos/videos/audios reales) desde la web del negocio.
 - `/actualizar-mi-bot` — trae la última versión conservando tu config.
 
 ## ¿Quieres más? (Forja+)

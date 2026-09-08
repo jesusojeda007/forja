@@ -177,3 +177,23 @@ describe("resolveTelegramFileUrl", () => {
     expect(url).toBeNull();
   });
 });
+
+describe("telegramAdapter.sendMedia", () => {
+  it.each([
+    ["image", "sendPhoto", "photo"],
+    ["video", "sendVideo", "video"],
+    ["audio", "sendVoice", "voice"],
+  ])("kind=%s → %s con la URL en el campo %s", async (kind, method, field) => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 200 }));
+    await telegramAdapter.sendMedia!(
+      { channel: "telegram", channelUserId: "42", url: "https://x/m", kind: kind as any, caption: "cap" },
+      { TELEGRAM_BOT_TOKEN: "TG" } as Env,
+    );
+    const [url, init] = fetchMock.mock.calls[0] as any[];
+    expect(url).toBe(`https://api.telegram.org/botTG/${method}`);
+    const body = JSON.parse(String(init.body));
+    expect(body.chat_id).toBe("42");
+    expect(body[field]).toBe("https://x/m");
+    expect(body.caption).toBe("cap");
+  });
+});

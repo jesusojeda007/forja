@@ -23,6 +23,34 @@ export const SETTING_KEYS = {
   learnedLessons: "learned_lessons", // JSON array of rules distilled from owner takeovers
   twilioHandoffContentSid: "twilio_handoff_content_sid", // HSM del aviso de handoff (fallback del secret)
   autonomyLevel: "autonomy_level", // flywheel: manual (default) | copilot (auto-aplica lo seguro de noche)
+  // Blindaje anti-invento (superpoder): "" / "off" (default) | "on". Con "on" el
+  // prompt lleva un bloque estricto y, tras generar, un chequeo de fundamento
+  // verifica que la respuesta se apoye en el contexto del negocio o la KB antes
+  // de enviarla. Ver src/llm/blindajeCheck.ts.
+  blindaje: "blindaje",
+  // Recupera no-shows (superpoder): "" / "off" (default) | "on". Con "on", un
+  // trabajo nocturno manda un recordatorio la noche anterior a cada cita y, si
+  // el cliente no dio señales tras la hora de la cita, un mensaje de
+  // recuperación. Ver src/noshows/run.ts.
+  noshows: "noshows",
+  // Reportes automáticos (superpoder): "" / "off" (default) | "semanal" (los
+  // lunes) | "diario". Un resumen del período al dueño por Telegram + email.
+  // Ver src/reportes/run.ts.
+  reportes: "reportes",
+  // Galería (superpoder): "" / "off" (default) | "on". Con "on", el bot puede
+  // llamar la tool sendGalleryItem para mandar fotos/videos/audios reales del
+  // negocio. Los items se cargan por agente/CLI (skill/galeria.md). Ver
+  // src/galeria/.
+  galeria: "galeria",
+  // Cazador de ventas (superpoder): "" / "off" (default) | "on". Con "on", tras
+  // cada turno se puntúa el calor del lead y, si cruza a caliente, se le avisa
+  // al dueño en el momento. Ver src/cazador/.
+  cazador: "cazador",
+  // Encuestas de satisfacción (superpoder): "" / "off" (default) | "auto". Con
+  // "auto", un trabajo nocturno le manda una encuesta corta (nota 1-5) a cada
+  // conversación cerrada y la respuesta del cliente se captura en vivo. Nota
+  // baja avisa al dueño. Ver src/encuestas/.
+  encuestas: "encuestas",
   // BYO-LLM (dashboard "Modelo de IA"): the owner plugs their own provider,
   // API key and/or concrete model. Empty = the instance's env defaults.
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai
@@ -40,6 +68,12 @@ export const SETTING_KEYS = {
   // { [ruleKey]: valor }; la FORMA la define niche.rules. Se inyecta al prompt
   // como <reglas_del_negocio>. Vacío = el bot no promete nada estructurado.
   storeRules: "store_rules",
+  // Calculadora de ROI (Modo Agencia · pieza C). La agencia ajusta estos valores
+  // y el panel traduce la actividad del bot a plata. Vacío = defaults.
+  roiHourlyRate: "roi_hourly_rate",   // costo de 1 hora de atención humana (default 8)
+  roiCurrency: "roi_currency",        // símbolo/código a mostrar (default "USD")
+  roiMonthlyFee: "roi_monthly_fee",   // lo que la agencia le cobra al cliente/mes (para el múltiplo)
+  roiNoShowValue: "roi_noshow_value", // valor de una cita recuperada (default 0 = no se cuenta)
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

@@ -147,6 +147,89 @@ CREATE TABLE IF NOT EXISTS followup_sends (
   sent_at INTEGER NOT NULL
 );
 
+-- Citas reservadas por el bot (tool scheduleAppointment). Cal.com es la fuente
+-- de verdad del calendario, pero necesitamos un registro local para el
+-- superpoder "Recupera no-shows": recordatorio la noche anterior y, si el
+-- cliente no dio señales tras la hora de la cita, un mensaje de recuperación.
+-- status: booked (recién reservada) | reminded (ya se le recordó) |
+-- recovered (ya se le mandó el mensaje de recuperación). Cada transición de
+-- status es el candado anti-doble-envío (como followup_sends).
+CREATE TABLE IF NOT EXISTS appointments (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT,
+  channel TEXT NOT NULL,
+  channel_user_id TEXT NOT NULL,
+  service TEXT,
+  attendee_name TEXT,
+  start_ts INTEGER NOT NULL,
+  booking_id TEXT,
+  status TEXT NOT NULL DEFAULT 'booked',
+  reminded_at INTEGER,
+  recovered_at INTEGER,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_start ON appointments(start_ts);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status, start_ts);
+
+-- Reportes automáticos (superpoder): un resumen del período que se le manda al
+-- dueño (Telegram DM + email). period_key es el candado anti-doble-envío:
+-- "2026-W37" para el semanal, "2026-09-08" para el diario.
+CREATE TABLE IF NOT EXISTS report_sends (
+  period_key TEXT PRIMARY KEY,
+  sent_at INTEGER NOT NULL
+);
+
+-- Galería (superpoder): media REAL del negocio (fotos, videos, audios) que el
+-- bot manda cuando el cliente quiere ver algo. Los bytes viven en R2
+-- (bucket CATALOG, key galeria/<id>) y esta tabla es el índice + el "cuándo
+-- usarlo". label = nombre corto (menú), trigger = cuándo mandarlo
+-- (cuando pregunten por la carta o el menú). kind: image | video | audio.
+-- NOTE: nunca metas punto y coma dentro de un comentario del schema.
+CREATE TABLE IF NOT EXISTS gallery_items (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  label TEXT NOT NULL,
+  trigger TEXT NOT NULL DEFAULT '',
+  r2_key TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL DEFAULT 0,
+  source_url TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gallery_created ON gallery_items(created_at);
+
+-- Cazador de ventas (superpoder): puntaje de calor de cada conversación,
+-- recalculado tras cada turno (sin LLM, por señales). band: frio | tibio |
+-- caliente | muy_caliente. alerted_at = cuándo se le avisó al dueño de este
+-- episodio caliente (se re-avisa si vuelve a subir tras varios días).
+CREATE TABLE IF NOT EXISTS lead_scores (
+  conversation_id TEXT PRIMARY KEY,
+  score INTEGER NOT NULL DEFAULT 0,
+  band TEXT NOT NULL DEFAULT 'frio',
+  reason TEXT NOT NULL DEFAULT '',
+  scored_at INTEGER NOT NULL,
+  alerted_at INTEGER,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_lead_scores_band ON lead_scores(band, score);
+
+-- Encuestas de satisfacción (superpoder): una encuesta corta por conversación
+-- "cerrada" (hubo lead, cita o ticket resuelto). La PRIMARY KEY es el candado
+-- anti-doble-envío (INSERT OR IGNORE), como followup_sends: una encuesta por
+-- conversación, para siempre. La respuesta del cliente actualiza la misma fila
+-- (rating 1-5 + comentario opcional). rating <= 2 dispara un aviso al dueño.
+CREATE TABLE IF NOT EXISTS survey_sends (
+  conversation_id TEXT PRIMARY KEY,
+  channel TEXT NOT NULL,
+  channel_user_id TEXT NOT NULL,
+  sent_at INTEGER NOT NULL,
+  rating INTEGER,
+  comment TEXT,
+  responded_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_survey_responded ON survey_sends(responded_at);
+
 -- Per-customer memory extracted by the insights analyzer. Injected into the
 -- system context when the same customer writes again.
 CREATE TABLE IF NOT EXISTS customer_facts (

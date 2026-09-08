@@ -15,7 +15,7 @@ function makeCtx(tier: "free" | "pro", niche?: string): ToolContext {
 }
 
 describe("buildTools", () => {
-  it("registers the 7 free-tier tools (incluye captureLead, scheduleAppointment y sendPaymentQr)", () => {
+  it("registers the free-tier tools (incluye captureLead, scheduleAppointment, sendPaymentQr y sendGalleryItem)", () => {
     const tools = buildTools(makeCtx("free"));
     expect(Object.keys(tools).sort()).toEqual([
       "captureLead",
@@ -23,6 +23,7 @@ describe("buildTools", () => {
       "pauseBot",
       "scheduleAppointment",
       "searchKb",
+      "sendGalleryItem",
       "sendPaymentQr",
       "snoozeUser",
     ]);
@@ -44,6 +45,7 @@ describe("buildTools", () => {
       "pauseBot",
       "scheduleAppointment",
       "searchKb",
+      "sendGalleryItem",
       "sendPaymentQr",
       "sendProductPhoto",
       "snoozeUser",

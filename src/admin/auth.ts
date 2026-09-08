@@ -1,16 +1,36 @@
 /**
- * Admin dashboard authentication — the pure HTTP Basic Auth check.
+ * Admin dashboard authentication — HTTP Basic Auth (username is always "admin")
+ * plus a login form + session cookie (src/admin/session.ts) as the primary way in.
  *
- * The dashboard is guarded by a single password (username is always "admin").
- * The password lives in the `DASHBOARD_PASSWORD` secret. The primary way in is
- * the login form + session cookie (src/admin/session.ts); this Basic Auth path
- * stays available for curl and API clients. `checkBasicCredentials` is the
- * Hono-free predicate the guard in routes.ts calls.
+ * Dos passwords posibles (ver resolveRole): el completo (DASHBOARD_PASSWORD, rol
+ * "owner") y el opcional de cliente (CLIENT_PASSWORD, rol "client" — Modo
+ * Agencia). `checkBasicCredentials` es el predicado sin Hono que usa el guard
+ * de routes.ts para Basic Auth; la sesión cookie es la otra vía de entrada.
  */
 import type { Env } from "../env";
 
 /** Fixed username for the admin dashboard. */
 export const ADMIN_USERNAME = "admin";
+
+/**
+ * Roles del panel (Modo Agencia · pieza B):
+ *  - "owner"  → password completo (DASHBOARD_PASSWORD). Acceso total.
+ *  - "client" → password de cliente (CLIENT_PASSWORD, whitelabel). Vista recortada:
+ *               sin Config, Conexiones, Flujo, Conocimiento, Mejoras, Campañas ni Costos.
+ * Sin CLIENT_PASSWORD, el rol "client" no existe.
+ */
+export type AdminRole = "owner" | "client";
+
+/** Tabs (ids del NAV = sufijos de ruta) que el rol "client" no ve ni puede abrir. */
+export const CLIENT_HIDDEN_TABS = [
+  "config",
+  "conexiones",
+  "costs",
+  "mejoras",
+  "campanas",
+  "agente",
+  "kb",
+] as const;
 
 /**
  * Constant-time string comparison to avoid leaking length/content via timing.
@@ -74,4 +94,42 @@ export function checkBasicCredentials(
   const userOk = timingSafeEqual(username, ADMIN_USERNAME);
   const passOk = timingSafeEqual(password, env.DASHBOARD_PASSWORD ?? "");
   return userOk && passOk;
+}
+
+/**
+ * Igual que checkBasicCredentials pero contra un password explícito (para el
+ * password de cliente). Devuelve true sólo si el header decodifica a
+ * `admin:<expectedPassword>`.
+ */
+export function checkBasicAgainst(
+  headerValue: string | null | undefined,
+  expectedPassword: string,
+): boolean {
+  if (!headerValue || !expectedPassword) return false;
+  const match = /^Basic\s+(.+)$/i.exec(headerValue.trim());
+  if (!match) return false;
+  const decoded = decodeBase64(match[1].trim());
+  if (decoded === null) return false;
+  const sep = decoded.indexOf(":");
+  if (sep === -1) return false;
+  const userOk = timingSafeEqual(decoded.slice(0, sep), ADMIN_USERNAME);
+  const passOk = timingSafeEqual(decoded.slice(sep + 1), expectedPassword);
+  return userOk && passOk;
+}
+
+/**
+ * Resuelve el rol de una request al panel. null = credenciales no válidas.
+ * El password de owner gana siempre; el de cliente sólo cuenta si está
+ * configurado y es distinto del de owner.
+ */
+export function resolveRole(
+  headerValue: string | null | undefined,
+  env: Env,
+): AdminRole | null {
+  if (checkBasicCredentials(headerValue, env)) return "owner";
+  const clientPw = (env.CLIENT_PASSWORD ?? "").trim();
+  if (clientPw && clientPw !== (env.DASHBOARD_PASSWORD ?? "").trim() && checkBasicAgainst(headerValue, clientPw)) {
+    return "client";
+  }
+  return null;
 }

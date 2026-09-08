@@ -79,4 +79,10 @@ export const twilioAdapter: ChannelAdapter = {
       body,
     });
   },
+
+  // Twilio manda cualquier tipo de media por el mismo MediaUrl (lo clasifica
+  // por content-type). El `kind` no cambia el request — reusa sendImage.
+  async sendMedia({ channel, channelUserId, url, caption }, env: Env) {
+    await twilioAdapter.sendImage!({ channel, channelUserId, url, caption }, env);
+  },
 };

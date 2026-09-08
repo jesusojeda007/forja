@@ -3,6 +3,7 @@ import { Db } from "../../db/client";
 import { LeadsRepo, leadMetadata, type Lead } from "../../db/leads";
 import { getNiche } from "../../niches";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 import { fmtDate, fmtDateTime } from "../format";
 
 // Escapa texto del LLM/cliente antes de meterlo en HTML (el intent y las notas
@@ -17,7 +18,7 @@ interface Col {
   cell: (l: Lead, meta: Record<string, string>) => string;
 }
 
-export async function renderLeads(env: Env): Promise<string> {
+export async function renderLeads(env: Env, role: AdminRole = "owner"): Promise<string> {
   const niche = getNiche(env);
   const leads = new LeadsRepo(new Db(env.DB));
   const list = await leads.list(100);
@@ -122,7 +123,7 @@ export async function renderLeads(env: Env): Promise<string> {
         ${list.length ? rows : empty}
       </div>
     </div>`;
-  return layout({ title: niche.recordPlural, activeTab: "leads", body, env });
+  return layout({ title: niche.recordPlural, activeTab: "leads", body, env, role });
 }
 
 export async function exportLeadsCsv(env: Env): Promise<string> {

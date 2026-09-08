@@ -3,6 +3,7 @@ import { Db } from "../../db/client";
 import { ClientsRepo, type ClientRow } from "../../db/clients";
 import { getNiche } from "../../niches";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 import { fmtDateTime } from "../format";
 
 // CRM derivado: los mismos datos del inbox vistos por CLIENTE (identidad =
@@ -38,7 +39,11 @@ function channelChips(channels: string | null): string {
     .join(" ");
 }
 
-export async function renderClientes(env: Env, opts: { q?: string; f?: string }): Promise<string> {
+export async function renderClientes(
+  env: Env,
+  opts: { q?: string; f?: string },
+  role: AdminRole = "owner",
+): Promise<string> {
   const repo = new ClientsRepo(new Db(env.DB));
   const list = await repo.list({ q: opts.q, filter: opts.f || undefined });
 
@@ -97,13 +102,17 @@ export async function renderClientes(env: Env, opts: { q?: string; f?: string })
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
       ${list.length ? rows : empty}
     </div>`;
-  return layout({ title: "Clientes", activeTab: "clientes", body, env });
+  return layout({ title: "Clientes", activeTab: "clientes", body, env, role });
 }
 
-export async function renderCliente(env: Env, channelUserId: string): Promise<string> {
+export async function renderCliente(
+  env: Env,
+  channelUserId: string,
+  role: AdminRole = "owner",
+): Promise<string> {
   const repo = new ClientsRepo(new Db(env.DB));
   const c = await repo.detail(channelUserId);
-  if (!c) return layout({ title: "Cliente", activeTab: "clientes", body: `<div class="text-dim">Cliente no encontrado.</div>`, env });
+  if (!c) return layout({ title: "Cliente", activeTab: "clientes", body: `<div class="text-dim">Cliente no encontrado.</div>`, env, role });
 
   const ltv = c.payments.filter((p) => p.status === "confirmado").reduce((s, p) => s + p.monto, 0);
   const pend = c.payments.filter((p) => p.status === "pendiente");
@@ -193,5 +202,5 @@ export async function renderCliente(env: Env, channelUserId: string): Promise<st
       ${section("Conversaciones", convsHtml || `<div class="text-dim" style="font-size:12px">—</div>`)}
       ${section("Últimos mensajes", timelineHtml)}
     </div>`;
-  return layout({ title: c.name, activeTab: "clientes", body, env });
+  return layout({ title: c.name, activeTab: "clientes", body, env, role });
 }
