@@ -21,9 +21,7 @@ export interface Branding {
   showPoweredBy: boolean;
 }
 
-// "Parla": la marca de agencia de esta instancia (capa intermedia sobre el
-// motor Forja). AGENCY_NAME la reemplaza si el dueño revende el bot con otra marca.
-const DEFAULT_NAME = "Parla";
+const DEFAULT_NAME = "Forja";
 
 function sanitizeName(raw: string): string {
   return raw

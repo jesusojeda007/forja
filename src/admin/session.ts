@@ -12,13 +12,14 @@
 import type { Context } from "hono";
 import { getSignedCookie, setSignedCookie, deleteCookie } from "hono/cookie";
 import type { Env } from "../env";
+import type { AdminRole } from "./auth";
 
 export const SESSION_COOKIE = "forja_admin";
 
 /** 30 días. Se renueva en cada login. */
 const TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-type Ctx = Context<{ Bindings: Env }>;
+type Ctx = Context<{ Bindings: Env; Variables: { role: AdminRole } }>;
 
 /** Emite la cookie de sesión firmada tras un login correcto. */
 export async function startAdminSession(c: Ctx): Promise<void> {
