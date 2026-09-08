@@ -8,6 +8,7 @@ import { InsightsRepo } from "../../db/insights";
 import { costOfUsage, type ModelId } from "../../pricing";
 import { channelLabel } from "../../channels/labels";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 
 const ACCENT = "#047857";
 
@@ -97,7 +98,7 @@ function funnel(stages: { label: string; value: number }[]): string {
 
 // --- Page -------------------------------------------------------------------------
 
-export async function renderStats(env: Env): Promise<string> {
+export async function renderStats(env: Env, role: AdminRole = "owner"): Promise<string> {
   const db = new Db(env.DB);
   const thirtyDays = Date.now() - 30 * 86_400_000;
 
@@ -231,5 +232,5 @@ export async function renderStats(env: Env): Promise<string> {
       </div>
     </div>`;
 
-  return layout({ title: "Estadísticas", activeTab: "stats", body, env });
+  return layout({ title: "Estadísticas", activeTab: "stats", body, env, role });
 }

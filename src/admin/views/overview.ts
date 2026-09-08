@@ -1,6 +1,7 @@
 import type { Env } from "../../env";
 import { Db } from "../../db/client";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 import { costOfUsage, type ModelId } from "../../pricing";
 import { resolveAgentConfig, type AgentConfig } from "../../settings-loader";
 import { buildTools } from "../../tools";
@@ -48,7 +49,7 @@ function agentModelLabel(env: Env, cfg: AgentConfig): string {
 // Single-letter Spanish day-of-week labels, indexed like Date#getUTCDay() (0 = Dom).
 const DOW_LETTER = ["D", "L", "M", "M", "J", "V", "S"];
 
-export async function renderOverview(env: Env): Promise<string> {
+export async function renderOverview(env: Env, role: AdminRole = "owner"): Promise<string> {
   const db = new Db(env.DB);
   const niche = getNiche(env);
   const oneDay = Date.now() - 86_400_000;
@@ -411,5 +412,5 @@ export async function renderOverview(env: Env): Promise<string> {
       </section>
     </div>`;
 
-  return layout({ title: "Overview", activeTab: "overview", body, env });
+  return layout({ title: "Overview", activeTab: "overview", body, env, role });
 }

@@ -15,6 +15,9 @@ import { isPro, PRO_ONLY_TABS } from "../../config";
 import { getNiche } from "../../niches";
 import type { NichePack } from "../../niches";
 import { resolveBranding, brandingStyle, type Branding } from "../../agencia/branding";
+import { CLIENT_HIDDEN_TABS, type AdminRole } from "../auth";
+
+const CLIENT_HIDDEN = new Set<string>(CLIENT_HIDDEN_TABS);
 
 function escAttr(s: string): string {
   return s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
@@ -299,10 +302,12 @@ function sidebar(
   niche: NichePack | null,
   disabledTabs: Set<string>,
   b: Branding,
+  role: AdminRole,
 ): string {
   const locked = (id: string) => !pro && (PRO_ONLY_TABS as readonly string[]).includes(id);
+  const hidden = (id: string) => disabledTabs.has(id) || (role === "client" && CLIENT_HIDDEN.has(id));
   const sections = NAV.map((sec) => {
-    const visibleItems = sec.items.filter((i) => !disabledTabs.has(i.id));
+    const visibleItems = sec.items.filter((i) => !hidden(i.id));
     if (visibleItems.length === 0) return "";
     const hasActive = visibleItems.some((i) => i.id === activeTab);
     const labelColor = hasActive ? "var(--accent)" : "var(--dim)";
@@ -351,7 +356,13 @@ function sidebar(
   </aside>`;
 }
 
-export function layout(opts: { title: string; activeTab: string; body: string; env?: Env }): string {
+export function layout(opts: {
+  title: string;
+  activeTab: string;
+  body: string;
+  env?: Env;
+  role?: AdminRole;
+}): string {
   // Tier: si se pasa env, el nav Pro se bloquea para free. Sin env (ej. notFound)
   // se asume Pro para no ocultar nada por accidente.
   const pro = opts.env ? isPro(opts.env) : true;
@@ -365,6 +376,7 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   const section = NAV.find((s) => s.items.some((i) => i.id === opts.activeTab)) ?? NAV[0];
   const item = applyNiche(section.items.find((i) => i.id === opts.activeTab) ?? section.items[0], niche);
   const b = resolveBranding(opts.env);
+  const role: AdminRole = opts.role ?? "owner";
   const titlePrefix = b.agencyMode ? `${b.name} · ` : "";
 
   return `<!DOCTYPE html>
@@ -379,7 +391,7 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
 </head>
 <body class="scanlines">
   <div class="shell">
-    ${sidebar(opts.activeTab, pro, niche, disabledTabs, b)}
+    ${sidebar(opts.activeTab, pro, niche, disabledTabs, b, role)}
     <div style="display:flex;flex-direction:column;min-width:0">
       <header style="position:sticky;top:0;z-index:30;background:rgba(250,250,250,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;align-items:center;gap:20px">
         <div style="min-width:0">

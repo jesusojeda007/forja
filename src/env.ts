@@ -18,6 +18,10 @@ export interface Env {
   AGENCY_ACCENT?: string;      // color de acento #rgb / #rrggbb
   AGENCY_LOGO_URL?: string;    // logo del sidebar (solo https)
   AGENCY_HIDE_POWERED?: string; // "1" esconde el "hecho con Forja" del pie
+  // Modo Agencia · rol cliente (secret). Segundo password del panel: entra a una
+  // vista recortada (sin Config, Conexiones, Flujo, Conocimiento, Mejoras,
+  // Campañas ni Costos). Vacío = el rol cliente no existe. Ver src/admin/auth.ts.
+  CLIENT_PASSWORD?: string;
   WA_DAILY_TEMPLATE_CAP?: string; // tope diario de plantillas HSM (default 250 — tier 1 de Meta)
   BUSINESS_NAME: string;
   BOT_LANGUAGE: string;

@@ -1,15 +1,11 @@
 /**
  * Admin dashboard routes (Hono sub-app mounted at `/admin`).
  *
- * Auth is HTTP Basic Auth (owner override of the original magic-link plan):
- * every route is guarded by `adminAuth(env)`, which prompts the browser's
- * native Basic Auth dialog. Username is always "admin", password lives in the
- * `DASHBOARD_PASSWORD` secret. There are NO /login or /logout routes — Basic
- * Auth does not need them.
- *
- * Because the Basic Auth middleware needs the per-request `Env` (to read
- * `DASHBOARD_PASSWORD` from the binding), it is applied inside a wildcard
- * middleware that has access to `c.env` rather than at module-init time.
+ * Auth is HTTP Basic Auth (username always "admin"). Un wildcard middleware
+ * resuelve el ROL con `resolveRole` (c.env → DASHBOARD_PASSWORD / CLIENT_PASSWORD)
+ * y lo deja en `c.get("role")`; el rol "client" (Modo Agencia) además tiene
+ * rutas bloqueadas. No hay /login ni /logout — el diálogo nativo del navegador
+ * captura las credenciales.
  */
 import { parsePeerBots } from "./projects";
 import { Hono } from "hono";
@@ -17,7 +13,7 @@ import { generateText } from "ai";
 import { createModel } from "../llm/provider";
 import { loadLlmOverrides } from "../settings-loader";
 import type { Env } from "../env";
-import { adminAuth } from "./auth";
+import { resolveRole, CLIENT_HIDDEN_TABS, type AdminRole } from "./auth";
 import { layout, renderUpgrade } from "./views/layout";
 import { isPro } from "../config";
 import { renderOverview } from "./views/overview";
@@ -58,16 +54,39 @@ import { CONTROLS, levelToValue } from "./control-levels";
 import { systemPromptFromEnv } from "../system-prompt";
 import { renderBusinessContext } from "../businessContext";
 
-export const adminApp = new Hono<{ Bindings: Env }>();
+export const adminApp = new Hono<{ Bindings: Env; Variables: { role: AdminRole } }>();
 
-// Guard every admin route with Basic Auth. The middleware factory needs the
-// request-scoped Env to read DASHBOARD_PASSWORD, so build it per request here.
-// DASHBOARD_PUBLIC="1" (wrangler.toml de esta instancia) apaga el guard —
-// el panel es público a propósito (decisión de diseño de la instancia).
-// Para volver a protegerlo: quitar esa var y redeploy.
-adminApp.use("*", (c, next) => {
-  if (c.env.DASHBOARD_PUBLIC === "1") return next();
-  return adminAuth(c.env)(c, next);
+// Guard every admin route with Basic Auth. Resuelve además el ROL:
+//  - password completo (DASHBOARD_PASSWORD)  → "owner"
+//  - password de cliente (CLIENT_PASSWORD)   → "client" (vista recortada, Modo Agencia)
+// DASHBOARD_PUBLIC="1" apaga el guard (panel público a propósito) → siempre "owner".
+adminApp.use("*", async (c, next) => {
+  if (c.env.DASHBOARD_PUBLIC === "1") {
+    c.set("role", "owner");
+    await next();
+    return;
+  }
+  const role = resolveRole(c.req.header("Authorization"), c.env);
+  if (!role) {
+    return c.text("Autenticación requerida.", 401, {
+      "WWW-Authenticate": 'Basic realm="Panel", charset="UTF-8"',
+    });
+  }
+  c.set("role", role);
+  await next();
+});
+
+// Rol cliente (Modo Agencia): el nav ya esconde los tabs peligrosos, pero eso
+// no es seguridad. Si un cliente navega directo a una ruta bloqueada (URL,
+// bookmark), lo devolvemos al Resumen. Cubre GET y POST bajo esos prefijos.
+const CLIENT_BLOCKED = CLIENT_HIDDEN_TABS.map((id) => `/${id}`);
+adminApp.use("*", async (c, next) => {
+  if (c.get("role") !== "client") return next();
+  const rel = c.req.path.replace(/^\/admin/, "");
+  if (CLIENT_BLOCKED.some((p) => rel === p || rel.startsWith(p + "/"))) {
+    return c.redirect("/admin/overview");
+  }
+  return next();
 });
 
 // Gate de tier: el panel free ve el nav Pro bloqueado; si aun así navega a una
@@ -95,15 +114,19 @@ adminApp.get("/upgrade", (c) => c.html(renderUpgrade(c.env)));
 adminApp.get("/", (c) => c.redirect("/admin/overview"));
 
 // Selector de proyectos (header): instancia actual + hermanas de PEER_BOTS.
+// El rol cliente no ve los otros bots de la agencia.
 adminApp.get("/projects", (c) =>
-  c.json({ current: c.env.BOT_NAME ?? "Mi bot", peers: parsePeerBots(c.env) }),
+  c.json({
+    current: c.env.BOT_NAME ?? "Mi bot",
+    peers: c.get("role") === "client" ? [] : parsePeerBots(c.env),
+  }),
 );
 
 // --- Read-only tabs ---------------------------------------------------------
 
-adminApp.get("/overview", async (c) => c.html(await renderOverview(c.env)));
+adminApp.get("/overview", async (c) => c.html(await renderOverview(c.env, c.get("role"))));
 
-adminApp.get("/stats", async (c) => c.html(await renderStats(c.env)));
+adminApp.get("/stats", async (c) => c.html(await renderStats(c.env, c.get("role"))));
 
 adminApp.get("/costs", async (c) => c.html(await renderCosts(c.env, c.req.query("saved") === "1")));
 
@@ -237,11 +260,15 @@ adminApp.post("/mejoras/lessons/remove", async (c) => {
 // Inbox (F1): two-pane view. ?c=<id> selects the thread; ?f/?q filter the list.
 adminApp.get("/conversations", async (c) =>
   c.html(
-    await renderInbox(c.env, {
-      search: c.req.query("q"),
-      filter: c.req.query("f"),
-      selectedId: c.req.query("c"),
-    }),
+    await renderInbox(
+      c.env,
+      {
+        search: c.req.query("q"),
+        filter: c.req.query("f"),
+        selectedId: c.req.query("c"),
+      },
+      c.get("role"),
+    ),
   ),
 );
 
@@ -280,7 +307,7 @@ adminApp.get("/insights", async (c) => {
   } catch {
     // no executionCtx (tests) — render without background catch-up
   }
-  return c.html(await renderInsights(c.env, c.req.query("analyzed") ?? undefined));
+  return c.html(await renderInsights(c.env, c.req.query("analyzed") ?? undefined, c.get("role")));
 });
 
 // "Analizar ahora": grade up to 10 pending conversations inline, then redirect
@@ -363,16 +390,16 @@ adminApp.post("/agente/tools/:name/toggle", async (c) => {
 });
 
 adminApp.get("/clientes", async (c) =>
-  c.html(await renderClientes(c.env, { q: c.req.query("q") ?? "", f: c.req.query("f") ?? "" })),
+  c.html(await renderClientes(c.env, { q: c.req.query("q") ?? "", f: c.req.query("f") ?? "" }, c.get("role"))),
 );
 
 adminApp.get("/clientes/:cu", async (c) =>
-  c.html(await renderCliente(c.env, decodeURIComponent(c.req.param("cu")))),
+  c.html(await renderCliente(c.env, decodeURIComponent(c.req.param("cu")), c.get("role"))),
 );
 
-adminApp.get("/leads", async (c) => c.html(await renderLeads(c.env)));
+adminApp.get("/leads", async (c) => c.html(await renderLeads(c.env, c.get("role"))));
 
-adminApp.get("/tickets", async (c) => c.html(await renderTickets(c.env)));
+adminApp.get("/tickets", async (c) => c.html(await renderTickets(c.env, c.get("role"))));
 
 // Conexiones: mapa de canales con estado verde/gris (paso 4 del onboarding).
 adminApp.get("/conexiones", (c) => c.html(renderConexiones(c.env)));

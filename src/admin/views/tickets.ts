@@ -2,6 +2,7 @@ import type { Env } from "../../env";
 import { Db } from "../../db/client";
 import { TicketsRepo } from "../../db/tickets";
 import { layout } from "./layout";
+import type { AdminRole } from "../auth";
 import { fmtDateTime } from "../format";
 
 const STATUS_PILL: Record<string, string> = {
@@ -9,7 +10,7 @@ const STATUS_PILL: Record<string, string> = {
   in_progress: "var(--info)",
 };
 
-export async function renderTickets(env: Env): Promise<string> {
+export async function renderTickets(env: Env, role: AdminRole = "owner"): Promise<string> {
   const repo = new TicketsRepo(new Db(env.DB));
   const open = await repo.listOpen();
 
@@ -43,5 +44,5 @@ export async function renderTickets(env: Env): Promise<string> {
          </div>`
       : list;
 
-  return layout({ title: "Tickets", activeTab: "tickets", body, env });
+  return layout({ title: "Tickets", activeTab: "tickets", body, env, role });
 }
