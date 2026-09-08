@@ -40,8 +40,10 @@ const NAV: Section[] = [
     label: "Bandeja",
     items: [
       { id: "conversations", label: "Conversaciones", href: "/admin/conversations", icon: "messages-square" },
+      { id: "embudo", label: "Embudo", href: "/admin/embudo", icon: "columns-3" },
       { id: "clientes", label: "Clientes", href: "/admin/clientes", icon: "users" },
       { id: "leads", label: "Leads", href: "/admin/leads", icon: "user-plus" },
+      { id: "pedidos", label: "Pedidos", href: "/admin/pedidos", icon: "package" },
       { id: "tickets", label: "Tickets", href: "/admin/tickets", icon: "life-buoy" },
       { id: "campanas", label: "Campañas", href: "/admin/campanas", icon: "megaphone" },
     ],
@@ -116,13 +118,18 @@ const GLOBAL_STYLE = `
     --r-card:12px; --r-ctl:8px; --r-pill:999px;
     --shadow-soft:0 1px 2px rgba(24,24,27,.05),0 1px 3px rgba(24,24,27,.05);
     --shadow-pop:0 8px 24px rgba(24,24,27,.12);
-    --bg:#fafafa; --panel:#fefefe; --panel2:#f4f4f5; --raise:#e9e9eb;
-    --line:#e4e4e7; --linelit:#d4d4d8;
-    --accent:#047857; --accent-2:#0f766e; --accent-soft:rgba(4,120,87,.08);
-    --cream:#18181b; --muted:#52525b; --dim:#71717a;
-    --ok:#15803d; --info:#2563eb; --bad:#dc2626; --violet:#7c3aed;
+    --bg:#f6f7f6; --panel:#ffffff; --panel2:#eef1ef; --raise:#e4e8e5;
+    --line:#dfe3e0; --linelit:#cdd3cf;
+    --accent:#0a7f56; --accent-2:#0e7490; --accent-soft:rgba(10,127,86,.10);
+    --cream:#17201c; --muted:#4b5751; --dim:#7a847e;
+    --ok:#15803d; --ok-soft:rgba(21,128,61,.12);
+    --info:#2563eb; --info-soft:rgba(37,99,235,.12);
+    --bad:#dc2626; --bad-soft:rgba(220,38,38,.10);
+    --violet:#7c3aed; --violet-soft:rgba(124,58,237,.12);
+    --amber:#d97706; --amber-soft:rgba(217,119,6,.14);
+    --sky:#0284c7; --sky-soft:rgba(2,132,199,.12);
     /* legacy aliases kept so mockup-derived snippets keep working */
-    --border:#e4e4e7; --border-lit:#d4d4d8; --green:#15803d; --blue:#2563eb; --red:#dc2626;
+    --border:#dfe3e0; --border-lit:#cdd3cf; --green:#15803d; --blue:#2563eb; --red:#dc2626;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--cream);
@@ -229,14 +236,13 @@ const GLOBAL_STYLE = `
 
 // Re-run lucide after every htmx swap (fragments bring fresh icons) and close
 // any open modal with Escape.
+// Con hx-boost en <body>, htmx reemplaza el innerHTML del body en cada
+// navegación y RE-EJECUTA este <script>. Todo lo que solo debe pasar una vez
+// (listeners en document/body, intervalos) va detrás del guard __forjaShell;
+// las funciones que usan los handlers inline se re-cuelgan de window siempre.
 const GLOBAL_SCRIPT = `
 <script>
-  function drawIcons(){ if (window.lucide) window.lucide.createIcons(); }
-  document.addEventListener("DOMContentLoaded", drawIcons);
-  // lucide's unpkg script may resolve after DOMContentLoaded — retry briefly.
-  (function(){ var n=0; var t=setInterval(function(){ if(window.lucide){drawIcons();clearInterval(t);} if(++n>25) clearInterval(t); },120); })();
-  document.body.addEventListener("htmx:afterSwap", drawIcons);
-  document.body.addEventListener("htmx:oobAfterSwap", drawIcons);
+  window.drawIcons = function(){ if (window.lucide) window.lucide.createIcons(); };
   // Pausa del polling: no refresques el inbox mientras el usuario lee (o si la
   // pestaña está en segundo plano). htmx evalúa este filtro en cada tick de
   // 'every Ns[...]' y solo dispara la petición si devuelve true. En el hilo
@@ -250,19 +256,30 @@ const GLOBAL_SCRIPT = `
     if (!el) return true;
     return Math.abs(el.scrollTop) < 40;
   };
-  document.addEventListener("keydown", function(e){
-    if (e.key === "Escape") {
-      var root = document.getElementById("modal-root");
-      if (root) root.innerHTML = "";
-    }
-  });
+  drawIcons();
+  if (!window.__forjaShell) {
+    window.__forjaShell = true;
+    document.addEventListener("DOMContentLoaded", window.drawIcons);
+    // lucide's unpkg script may resolve after DOMContentLoaded — retry briefly.
+    (function(){ var n=0; var t=setInterval(function(){ if(window.lucide){window.drawIcons();clearInterval(t);} if(++n>25) clearInterval(t); },120); })();
+    // Redibuja íconos tras cada swap de htmx (fragmentos y navegación boosted).
+    document.body.addEventListener("htmx:afterSwap", window.drawIcons);
+    document.body.addEventListener("htmx:oobAfterSwap", window.drawIcons);
+    document.body.addEventListener("htmx:load", window.drawIcons);
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape") {
+        var root = document.getElementById("modal-root");
+        if (root) root.innerHTML = "";
+      }
+    });
+  }
 </script>`;
 
 function navItem(item: Item, active: boolean): string {
   const base =
     "display:flex;align-items:center;gap:11px;padding:9px 11px;font-size:13px;";
   const style = active
-    ? base + "color:var(--accent);background:var(--accent-soft);font-weight:600"
+    ? base + "color:var(--accent);background:var(--accent-soft);font-weight:600;box-shadow:inset 3px 0 0 var(--accent)"
     : base + "color:var(--muted)";
   const iconColor = active ? "var(--accent)" : "var(--dim)";
   return `<a href="${item.href}" class="navlink" style="${style}">
@@ -311,13 +328,13 @@ function sidebar(activeTab: string, pro: boolean, niche: NichePack | null, disab
           <i data-lucide="zap" width="18" height="18" style="color:#fff"></i>
         </div>
         <div style="line-height:1.15">
-          <div style="font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:-.01em">Forja</div>
+          <div style="font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:-.01em">Parla</div>
           <div style="font-size:10.5px;color:var(--dim)">Panel · ${pro ? "Pro" : "Free"}</div>
         </div>
       </div>
     </div>
     <nav class="sb-nav">${sections}</nav>
-    <div class="sb-foot" style="padding:14px;border-top:1px solid var(--line)">
+    <div class="sb-foot" style="padding:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)">
         <div style="width:30px;height:30px;flex:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ok)">
           <i data-lucide="bot" width="16" height="16"></i>
@@ -327,6 +344,11 @@ function sidebar(activeTab: string, pro: boolean, niche: NichePack | null, disab
           <div style="font-size:10px;color:var(--dim)">sesión activa</div>
         </div>
       </div>
+      <form method="POST" action="/admin/logout" style="margin:0">
+        <button type="submit" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--dim);padding:8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">
+          <i data-lucide="log-out" width="14" height="14"></i> Cerrar sesión
+        </button>
+      </form>
     </div>
   </aside>`;
 }
@@ -354,7 +376,7 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   ${HEAD_ASSETS}
   ${GLOBAL_STYLE}
 </head>
-<body class="scanlines">
+<body class="scanlines" hx-boost="true">
   <div class="shell">
     ${sidebar(opts.activeTab, pro, niche, disabledTabs)}
     <div style="display:flex;flex-direction:column;min-width:0">
@@ -376,23 +398,31 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   <script>
   // Selector de proyectos: si esta instancia declara PEER_BOTS, el header
   // muestra un dropdown para brincar entre bots (cada uno con su panel).
-  fetch('/admin/projects').then(function(r){ return r.ok ? r.json() : null }).then(function(d){
-    if (!d || !d.peers || d.peers.length === 0) return;
-    var el = document.getElementById('proj-switcher');
-    if (!el) return;
-    var opts = '<option selected>' + d.current.replace(/</g,'&lt;') + '</option>';
-    d.peers.forEach(function(p){
-      opts += '<option value="' + p.url.replace(/"/g,'&quot;') + '">' + p.name.replace(/</g,'&lt;') + '</option>';
-    });
-    // Las comillas simples van como &#39;: este bloque vive dentro de un
-    // template literal, así que los \' del código fuente NO llegan al navegador
-    // y cerraban la cadena JS de golpe (SyntaxError en cada carga del panel).
-    // El parser de HTML las decodifica antes de que corran el onchange y el CSS.
-    el.innerHTML = '<select onchange="if(this.value.indexOf(&#39;http&#39;)===0)window.location=this.value" ' +
-      'style="background:var(--panel);color:var(--fg,var(--cream));border:1px solid var(--line);border-radius:8px;' +
-      'padding:6px 10px;font-size:12px;cursor:pointer" ' +
-      'title="Cambiar de proyecto">' + opts + '</select>';
-  }).catch(function(){});
+  // Con hx-boost el #proj-switcher se re-crea vacío en cada navegación, así que
+  // re-pintamos siempre — pero el fetch se hace una sola vez y se cachea.
+  (function(){
+    function paint(d){
+      if (!d || !d.peers || d.peers.length === 0) return;
+      var el = document.getElementById('proj-switcher');
+      if (!el || el.firstChild) return;
+      var opts = '<option selected>' + d.current.replace(/</g,'&lt;') + '</option>';
+      d.peers.forEach(function(p){
+        opts += '<option value="' + p.url.replace(/"/g,'&quot;') + '">' + p.name.replace(/</g,'&lt;') + '</option>';
+      });
+      // Las comillas simples van como &#39;: este bloque vive dentro de un
+      // template literal, así que los \' del código fuente NO llegan al navegador
+      // y cerraban la cadena JS de golpe. El parser de HTML las decodifica antes.
+      el.innerHTML = '<select onchange="if(this.value.indexOf(&#39;http&#39;)===0)window.location=this.value" ' +
+        'style="background:var(--panel);color:var(--fg,var(--cream));border:1px solid var(--line);border-radius:8px;' +
+        'padding:6px 10px;font-size:12px;cursor:pointer" ' +
+        'title="Cambiar de proyecto">' + opts + '</select>';
+    }
+    if (window.__forjaPeers) { paint(window.__forjaPeers); return; }
+    fetch('/admin/projects').then(function(r){ return r.ok ? r.json() : null }).then(function(d){
+      window.__forjaPeers = d || {};
+      paint(d);
+    }).catch(function(){});
+  })();
   </script>
   <div id="toast-root" style="position:fixed;bottom:1rem;right:1rem;z-index:60"></div>
   ${GLOBAL_SCRIPT}
@@ -443,33 +473,49 @@ export function renderUpgrade(env: Env, feature?: string): string {
   return layout({ title: "Pro", activeTab: "overview", body, env });
 }
 
-export function loginPage(error?: string): string {
+/**
+ * Login del panel: un formulario normal (contraseña → cookie de sesión), en
+ * vez del diálogo nativo de Basic Auth. El usuario es siempre "admin", así que
+ * solo se pide la contraseña (`DASHBOARD_PASSWORD`).
+ */
+export function loginPage(
+  env: Env,
+  opts: { error?: boolean; next?: string } = {},
+): string {
+  const esc = (s: string) =>
+    s.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]!));
+  const action =
+    opts.next && opts.next.startsWith("/admin")
+      ? `/admin/login?next=${encodeURIComponent(opts.next)}`
+      : "/admin/login";
+  const title = env.BUSINESS_NAME ? `${env.BUSINESS_NAME}` : "Panel";
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login</title>
+  <title>Entrar · ${esc(title)}</title>
   ${HEAD_ASSETS}
   ${GLOBAL_STYLE}
 </head>
 <body class="scanlines" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem">
-  <form method="POST" action="/admin/auth/request" style="background:var(--panel);border:1px solid var(--linelit);padding:32px;max-width:360px;width:100%">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-      <div style="width:34px;height:34px;flex:none;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;background:var(--accent-soft);">
-        <i data-lucide="terminal" width="18" height="18" style="color:var(--accent)"></i>
+  <form method="POST" action="${action}" style="background:var(--panel);border:1px solid var(--linelit);padding:32px;max-width:360px;width:100%;border-radius:12px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <div style="width:36px;height:36px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent)">
+        <i data-lucide="lock" width="18" height="18" style="color:#fff"></i>
       </div>
       <div>
-        <h1 style="font-family:'Space Grotesk';font-weight:700;font-size:18px;margin:0;letter-spacing:-.02em">Dashboard del bot</h1>
-        <p style="font-size:11px;color:var(--dim);margin:2px 0 0">Te mandamos un link a tu email para entrar.</p>
+        <h1 style="font-family:'Space Grotesk';font-weight:700;font-size:18px;margin:0;letter-spacing:-.02em">${esc(title)}</h1>
+        <p style="font-size:11.5px;color:var(--dim);margin:2px 0 0">Panel de administración</p>
       </div>
     </div>
-    ${error ? `<p style="color:var(--bad);font-size:12px;margin:0 0 12px">${error}</p>` : ""}
-    <input name="email" type="email" required placeholder="tu@email.com"
-      style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 12px;font-size:13px;outline:none;margin-bottom:14px">
+    ${opts.error ? `<p style="color:var(--bad);font-size:12px;margin:0 0 12px;font-weight:600">Contraseña incorrecta. Probá de nuevo.</p>` : ""}
+    <label for="password" style="display:block;font-size:12px;color:var(--dim);margin-bottom:6px">Contraseña</label>
+    <input id="password" name="password" type="password" required autofocus autocomplete="current-password"
+      style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:10px 12px;font-size:13px;outline:none;margin-bottom:16px;border-radius:8px">
     <button class="bigbtn" type="submit"
-      style="width:100%;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:11px;font-family:'Space Grotesk';font-weight:700;font-size:13px;cursor:pointer">
-      Mandar link
+      style="width:100%;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:11px;font-family:'Space Grotesk';font-weight:700;font-size:13px;cursor:pointer;border-radius:8px">
+      Entrar
     </button>
   </form>
   ${GLOBAL_SCRIPT}

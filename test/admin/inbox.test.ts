@@ -205,29 +205,40 @@ describe("inbox — pause / resume", () => {
   });
 });
 
-describe("inbox — filtros por sentimiento del Analista", () => {
-  it("filtra molestos y contentos según conversation_insights", async () => {
-    const { InsightsRepo } = await import("../../src/db/insights");
-    const insights = new InsightsRepo(db);
-    const enojado = await convs.getOrCreate("manychat", "angry1", "Enojado");
-    await msgs.append(enojado.id, "user", "pésimo servicio");
-    const feliz = await convs.getOrCreate("manychat", "happy1", "Feliz");
-    await msgs.append(feliz.id, "user", "todo excelente");
-    const base = {
-      resolution: "resolved" as const, botScore: 4, topics: [], summary: "x",
-      missedKb: null, saleOpportunity: false,
-    };
-    await insights.upsert({ ...base, conversationId: enojado.id, sentiment: "angry" });
-    await insights.upsert({ ...base, conversationId: feliz.id, sentiment: "positive" });
+describe("inbox — filtros por etapa (mismo sistema que el Embudo)", () => {
+  it("filtra por etapa: escribió vs necesita un humano", async () => {
+    const solo = await convs.getOrCreate("telegram", "st-solo", "SoloEscribio");
+    await msgs.append(solo.id, "user", "hola, qué precios manejan?");
 
-    const molestos = await adminApp.request("/conversations?f=molestos", { headers: AUTH }, env);
-    const hm = await molestos.text();
-    expect(hm).toContain("Enojado");
-    expect(hm).not.toContain("Feliz");
+    const humano = await convs.getOrCreate("telegram", "st-humano", "NecesitaHumano");
+    await msgs.append(humano.id, "user", "quiero hablar con alguien");
+    await convs.setPausedUntil(humano.id, Date.now() + 60_000);
 
-    const contentos = await adminApp.request("/conversations?f=contentos", { headers: AUTH }, env);
-    const hc = await contentos.text();
-    expect(hc).toContain("Feliz");
-    expect(hc).not.toContain("Enojado");
+    const escribio = await adminApp.request("/conversations?f=escribio", { headers: AUTH }, env);
+    const he = await escribio.text();
+    expect(he).toContain("SoloEscribio");
+    expect(he).not.toContain("NecesitaHumano");
+
+    const nh = await adminApp.request("/conversations?f=humano", { headers: AUTH }, env);
+    const hh = await nh.text();
+    expect(hh).toContain("NecesitaHumano");
+    expect(hh).not.toContain("SoloEscribio");
+  });
+
+  it("compró: conversación con pedido pagado", async () => {
+    const { OrdersRepo } = await import("../../src/db/orders");
+    const comprador = await convs.getOrCreate("telegram", "st-compro", "YaCompro");
+    await msgs.append(comprador.id, "user", "gracias!");
+    const orders = new OrdersRepo(db);
+    const { id } = await orders.create({
+      conversationId: comprador.id,
+      items: [{ name: "Licuadora", qty: 1, price: 229 }],
+      total: 229,
+    });
+    await orders.setStatus(id, "pagado");
+
+    const res = await adminApp.request("/conversations?f=compro", { headers: AUTH }, env);
+    const h = await res.text();
+    expect(h).toContain("YaCompro");
   });
 });

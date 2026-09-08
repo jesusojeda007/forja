@@ -241,3 +241,47 @@ CREATE TABLE IF NOT EXISTS catalog_cache (
   items_json TEXT NOT NULL,
   fetched_at INTEGER NOT NULL
 );
+
+-- Pedidos de la tienda (nicho tienda). El bot los REGISTRA (registrarPedido) —
+-- nunca confirma el pago. El dueño mueve el estado desde el panel.
+-- status: pendiente | reservado | pagado | enviado | entregado | cancelado
+-- delivery_zone: incluido | cliente_paga | interior
+-- items_json: [{ name, sku, qty, price }]
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL,
+  conversation_id TEXT,
+  lead_id TEXT,
+  items_json TEXT NOT NULL,
+  total REAL NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'BOB',
+  customer_name TEXT,
+  contact TEXT,
+  city TEXT,
+  address TEXT,
+  delivery_zone TEXT,
+  map_url TEXT,
+  status TEXT NOT NULL DEFAULT 'pendiente',
+  reserved_until INTEGER,
+  notes TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_orders_conv ON orders(conversation_id);
+
+-- Lista de espera por producto agotado (tool anotarEnEspera). El cron nocturno
+-- cruza contra el catálogo y avisa al dueño qué productos volvieron con clientes
+-- esperando. notified_at != NULL = ya se avisó de esta vuelta de stock.
+CREATE TABLE IF NOT EXISTS stock_waitlist (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT,
+  channel TEXT NOT NULL,
+  channel_user_id TEXT NOT NULL,
+  sku TEXT,
+  product_name TEXT NOT NULL,
+  customer_name TEXT,
+  notified_at INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_waitlist_pending ON stock_waitlist(notified_at, created_at);

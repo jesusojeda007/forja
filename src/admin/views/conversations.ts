@@ -16,7 +16,8 @@ import { Db } from "../../db/client";
 import { InsightsRepo } from "../../db/insights";
 import { SENTIMENT_BADGE } from "./insights";
 import { costOfUsage, type ModelId } from "../../pricing";
-import { channelLabel } from "../../channels/labels";
+import { channelLabel, channelIcon } from "../../channels/labels";
+import { STAGES, STAGE_BY_ID, stageOf, isStageId, STAGE_SIGNAL_COLUMNS } from "../stages";
 import { layout } from "./layout";
 import { fmtDateTime } from "../format";
 
@@ -32,15 +33,6 @@ function ago(ms: number | null | undefined): string {
   const d = Math.floor(h / 24);
   return `hace ${d} d`;
 }
-
-// Lead pill colors follow the design-system's own "Lead" example (accent) —
-// see docs/design-system.md §3 Pill/badge.
-const LEAD_BADGE: Record<string, { txt: string; color: string }> = {
-  new: { txt: "💰 Lead nuevo", color: "var(--accent)" },
-  contacted: { txt: "💬 Contactado", color: "var(--info)" },
-  sold: { txt: "✅ Vendido", color: "var(--ok)" },
-  lost: { txt: "✖ Perdido", color: "var(--dim)" },
-};
 
 // We reuse SENTIMENT_BADGE's `.txt` labels (insights.ts) but render inbox pills
 // with inline token colors; both maps use the same semantics (frustrated→amber,
@@ -103,11 +95,6 @@ function initialsOf(label: string): string {
   return parts.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "?";
 }
 
-/** WhatsApp gets info-blue, every other channel gets accent-2 amber — mirrors the mockup's WA/other split. */
-function channelColor(channel: string): string {
-  return channel === "twilio" || channel === "whatsapp" ? "var(--info)" : "var(--accent-2)";
-}
-
 interface InboxParams {
   search?: string;
   filter?: string;
@@ -136,65 +123,52 @@ export async function renderInboxList(env: Env, p: InboxParams): Promise<string>
     conds.push("(c.display_name LIKE ? OR c.channel_user_id LIKE ?)");
     params.push(`%${p.search}%`, `%${p.search}%`);
   }
-  if (p.filter === "leads") {
-    conds.push("EXISTS (SELECT 1 FROM leads l WHERE l.conversation_id = c.id)");
-  } else if (p.filter === "atencion") {
-    conds.push(
-      "((c.paused_until IS NOT NULL AND c.paused_until > ?) OR EXISTS (SELECT 1 FROM tickets t WHERE t.conversation_id = c.id AND t.status != 'resolved'))",
-    );
-    params.push(now);
-  } else if (p.filter === "molestos") {
-    // Clasificación del Analista: revisar estas conversaciones = oro para mejorar.
-    conds.push(
-      "EXISTS (SELECT 1 FROM conversation_insights i WHERE i.conversation_id = c.id AND i.sentiment IN ('frustrated','angry'))",
-    );
-  } else if (p.filter === "contentos") {
-    conds.push(
-      "EXISTS (SELECT 1 FROM conversation_insights i WHERE i.conversation_id = c.id AND i.sentiment = 'positive')",
-    );
-  }
   const whereSql = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+  const wantStage = isStageId(p.filter) ? p.filter : null;
 
-  const rows = await db.all<any>(
+  const raw = await db.all<any>(
     `SELECT c.*,
        (SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_msg,
-       (SELECT COUNT(*) FROM leads l WHERE l.conversation_id = c.id) as lead_count,
-       (SELECT status FROM leads l WHERE l.conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as lead_status,
        (SELECT COUNT(*) FROM tickets t WHERE t.conversation_id = c.id AND t.status != 'resolved') as open_tickets,
+       (SELECT status FROM leads l WHERE l.conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as lead_status,
+       (SELECT metadata FROM leads l WHERE l.conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as lead_meta,
+       (SELECT group_concat(o.status) FROM orders o WHERE o.conversation_id = c.id) as order_statuses,
        (SELECT sentiment FROM conversation_insights i WHERE i.conversation_id = c.id) as ai_sentiment
      FROM conversations c
      ${whereSql}
-     ORDER BY c.last_message_at DESC LIMIT 50`,
-    params,
+     ORDER BY c.last_message_at DESC LIMIT ?`,
+    [...params, wantStage ? 400 : 60],
   );
+
+  const rows = raw
+    .map((r) => ({ ...r, _stage: stageOf(r, now) }))
+    .filter((r) => !wantStage || r._stage === wantStage)
+    .slice(0, 60);
 
   const items = rows
     .map((r) => {
-      const paused = r.paused_until && r.paused_until > now;
-      const badges: string[] = [];
-      if (r.lead_count > 0) {
-        const b = LEAD_BADGE[r.lead_status as string] ?? LEAD_BADGE.new;
-        badges.push(`<span style="${smallPill(b.color)}">${b.txt}</span>`);
-      }
-      if (r.open_tickets > 0) badges.push(`<span style="${smallPill("var(--accent-2)")}">🔔</span>`);
-      if (paused) badges.push(`<span style="${smallPill("var(--dim)")}">⏸</span>`);
+      const st = STAGE_BY_ID[r._stage as keyof typeof STAGE_BY_ID];
+      const badges: string[] = [
+        `<span style="${smallPill(st.color)}">${st.emoji} ${st.label}</span>`,
+      ];
       if (r.ai_sentiment === "frustrated" || r.ai_sentiment === "angry") {
         const s = SENTIMENT_BADGE[r.ai_sentiment as string];
         badges.push(`<span style="${smallPill(SENTIMENT_COLOR[r.ai_sentiment as string])}">${s.txt}</span>`);
+      } else if (r.ai_sentiment === "positive") {
+        badges.push(`<span style="${smallPill(SENTIMENT_COLOR.positive)}">🙂</span>`);
       }
       const selected = r.id === p.selectedId;
       const name = escapeHtml(r.display_name ?? r.channel_user_id ?? "—");
       const preview = escapeHtml((r.last_msg ?? "").replace(/\s+/g, " ").slice(0, 60));
       const initials = initialsOf(r.display_name ?? r.channel_user_id ?? "?");
-      const chanColor = channelColor(r.channel);
 
       return `
-      <a href="${inboxUrl(p, r.id)}" class="convrow" style="display:flex;gap:11px;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;${selected ? "background:var(--panel2);border-left:2px solid var(--accent)" : "border-left:2px solid transparent"}">
+      <a href="${inboxUrl(p, r.id)}" class="convrow" style="display:flex;gap:11px;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;border-left:3px solid ${st.color};${selected ? "background:var(--panel2)" : ""}">
         <div style="width:34px;height:34px;flex:none;background:var(--raise);border:1px solid var(--linelit);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:var(--accent)">${initials}</div>
         <div style="min-width:0;flex:1">
           <div style="display:flex;align-items:center;gap:6px">
             <span style="font-size:12.5px;font-weight:600;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;color:var(--cream)">${name}</span>
-            <span style="font-size:9px;letter-spacing:.05em;color:${chanColor};border:1px solid ${chanColor};padding:0 5px;flex:none">${escapeHtml(channelLabel(r.channel))}</span>
+            ${channelIcon(r.channel, 17)}
             <span style="margin-left:auto;font-size:9.5px;color:var(--dim);white-space:nowrap">${ago(r.last_message_at)}</span>
           </div>
           <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-top:3px">${preview || "—"}</div>
@@ -315,7 +289,7 @@ export async function renderThreadLive(env: Env, convId: string): Promise<string
   <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)">
     <span style="font-family:'Space Grotesk';font-weight:600;font-size:14px;color:var(--cream)">${escapeHtml(conv.display_name || "Sin nombre")}</span>
     ${bloqueContacto(conv.channel, conv.channel_user_id)}
-    <span style="${smallPill("var(--info)")}">${escapeHtml(channelLabel(conv.channel))}</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--dim)">${channelIcon(conv.channel, 16)}${escapeHtml(channelLabel(conv.channel))}</span>
     ${statusPill}
     ${sentBadge}
     ${openTicket > 0 ? `<span style="${statusBadge("var(--accent-2)")}">🔔 ticket abierto</span>` : ""}
@@ -422,22 +396,14 @@ export async function renderInbox(env: Env, p: InboxParams): Promise<string> {
   const now = Date.now();
 
   const totalConvs = (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM conversations"))?.n ?? 0;
-  const totalLeads = (await db.first<{ n: number }>("SELECT COUNT(*) as n FROM leads"))?.n ?? 0;
-  const nMolestos =
-    (await db.first<{ n: number }>(
-      "SELECT COUNT(*) as n FROM conversation_insights WHERE sentiment IN ('frustrated','angry')",
-    ))?.n ?? 0;
-  const nContentos =
-    (await db.first<{ n: number }>(
-      "SELECT COUNT(*) as n FROM conversation_insights WHERE sentiment = 'positive'",
-    ))?.n ?? 0;
-  const needAttention =
-    (await db.first<{ n: number }>(
-      `SELECT COUNT(*) as n FROM conversations c
-       WHERE (c.paused_until IS NOT NULL AND c.paused_until > ?)
-          OR EXISTS (SELECT 1 FROM tickets t WHERE t.conversation_id = c.id AND t.status != 'resolved')`,
-      [now],
-    ))?.n ?? 0;
+
+  // Conteo por etapa: se trae la señal mínima de cada conversación y se bucketea
+  // con el MISMO stageOf que usa el Embudo — un solo sistema.
+  const signalRows = await db.all<any>(
+    `SELECT c.paused_until, ${STAGE_SIGNAL_COLUMNS} FROM conversations c`,
+  );
+  const stageCount: Record<string, number> = { escribio: 0, porcomprar: 0, compro: 0, humano: 0 };
+  for (const s of signalRows) stageCount[stageOf(s, now)]++;
 
   const filterPill = (href: string, label: string, active: boolean, color: string) =>
     `<a href="${href}" class="chip" style="font-size:11px;letter-spacing:.05em;padding:5px 12px;white-space:nowrap;border:1px solid ${color};${
@@ -472,10 +438,14 @@ export async function renderInbox(env: Env, p: InboxParams): Promise<string> {
   const body = `
     <div class="flex flex-wrap items-center gap-2" style="margin-bottom:14px">
       ${filterPill(inboxUrl({ selectedId: p.selectedId }), `Todas · ${totalConvs}`, !p.filter, "var(--accent)")}
-      ${filterPill(inboxUrl({ filter: "leads", selectedId: p.selectedId }), `💰 Leads · ${totalLeads}`, p.filter === "leads", "var(--accent)")}
-      ${filterPill(inboxUrl({ filter: "atencion", selectedId: p.selectedId }), `🔔 Atención · ${needAttention}`, p.filter === "atencion", "var(--bad)")}
-      ${filterPill(inboxUrl({ filter: "molestos", selectedId: p.selectedId }), `😠 Molestos · ${nMolestos}`, p.filter === "molestos", "var(--bad)")}
-      ${filterPill(inboxUrl({ filter: "contentos", selectedId: p.selectedId }), `🙂 Contentos · ${nContentos}`, p.filter === "contentos", "var(--ok)")}
+      ${STAGES.map((s) =>
+        filterPill(
+          inboxUrl({ filter: s.id, selectedId: p.selectedId }),
+          `${s.emoji} ${s.label} · ${stageCount[s.id]}`,
+          p.filter === s.id,
+          s.color,
+        ),
+      ).join("")}
       <form method="GET" action="/admin/conversations" class="ml-auto" style="display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);padding:7px 12px;min-width:220px">
         <i data-lucide="search" width="14" height="14" style="color:var(--dim)"></i>
         ${p.filter ? `<input type="hidden" name="f" value="${escapeHtml(p.filter)}">` : ""}

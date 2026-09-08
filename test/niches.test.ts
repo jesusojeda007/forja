@@ -32,7 +32,8 @@ describe("pack tienda", () => {
     expect(n.statusLabels.sold).toBe("Compró");
     expect(n.columns.map((c) => c.key)).toEqual(["producto", "monto"]);
     expect(n.playbook).toContain("<niche_playbook>");
-    expect(n.hiddenTabs).toContain("tickets");
+    // tickets queda visible en tienda (los reclamos tienen que caer en algún lado)
+    expect(n.hiddenTabs).not.toContain("tickets");
   });
 
   it("inyecta el playbook del nicho al prompt", () => {
@@ -41,17 +42,17 @@ describe("pack tienda", () => {
     expect(prompt).toContain("<niche_playbook>");
   });
 
-  it("nav: dice 'Interesados' y oculta tickets por defecto del pack", () => {
+  it("nav: dice 'Interesados', muestra Pedidos y Tickets", () => {
     const html = layout({ title: "T", activeTab: "leads", body: "x", env: envWith("tienda") });
     expect(html).toContain("Interesados");
     expect(html).toContain('href="/admin/leads"');
-    expect(html).not.toContain('href="/admin/tickets"');
+    expect(html).toContain('href="/admin/pedidos"');
+    expect(html).toContain('href="/admin/tickets"');
   });
 
   it("DISABLED_TABS se suma a las ocultas por el pack", () => {
     const env = { ...envWith("tienda"), DISABLED_TABS: "campanas" } as unknown as Env;
     const html = layout({ title: "T", activeTab: "leads", body: "x", env });
-    expect(html).not.toContain('href="/admin/tickets"');
     expect(html).not.toContain('href="/admin/campanas"');
   });
 });

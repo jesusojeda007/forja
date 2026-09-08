@@ -14,7 +14,31 @@ interface TgUpdate {
     caption?: string;
     voice?: { file_id: string; duration: number };
     photo?: { file_id: string; width: number; height: number }[];
+    location?: { latitude: number; longitude: number };
+    venue?: {
+      location: { latitude: number; longitude: number };
+      title?: string;
+      address?: string;
+    };
+    contact?: { phone_number: string; first_name?: string; last_name?: string };
   };
+}
+
+/** Texto sintético para adjuntos que no son texto/voz/foto (ubicación, contacto). */
+function describeNonText(msg: NonNullable<TgUpdate["message"]>): string | undefined {
+  const loc = msg.venue?.location ?? msg.location;
+  if (loc) {
+    const map = `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`;
+    const place = msg.venue
+      ? ` (${[msg.venue.title, msg.venue.address].filter(Boolean).join(", ")})`
+      : "";
+    return `[UBICACIÓN COMPARTIDA] El cliente mandó su ubicación en el mapa${place}: ${map}`;
+  }
+  if (msg.contact) {
+    const name = [msg.contact.first_name, msg.contact.last_name].filter(Boolean).join(" ");
+    return `[CONTACTO COMPARTIDO] El cliente compartió un número: ${msg.contact.phone_number}${name ? ` (${name})` : ""}`;
+  }
+  return undefined;
 }
 
 export async function resolveTelegramFileUrl(
@@ -49,6 +73,10 @@ export const telegramAdapter: ChannelAdapter = {
       const largest = msg.photo[msg.photo.length - 1];
       imageUrl = (await resolveTelegramFileUrl(largest.file_id, token)) ?? undefined;
       text = msg.caption;
+    } else if (!text) {
+      // Ubicación / contacto compartidos: sin esto el mensaje llega vacío y el
+      // bot lo ignora en silencio (processBuffer descarta el buffer vacío).
+      text = describeNonText(msg);
     }
     return {
       channel: "telegram",

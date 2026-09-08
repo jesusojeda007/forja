@@ -94,6 +94,63 @@ describe("telegramAdapter.parseIncoming", () => {
     expect(msg.text).toBe("mira esto");
   });
 
+  it("convierte una ubicación compartida en texto con link de mapa (si no, el bot la ignora)", async () => {
+    const msg = await telegramAdapter.parseIncoming(
+      makeReq({
+        update_id: 5,
+        message: {
+          message_id: 14,
+          from: { id: 555, first_name: "Ana", is_bot: false },
+          chat: { id: 555, type: "private" },
+          date: 100,
+          location: { latitude: -17.7833, longitude: -63.1821 },
+        },
+      }),
+      env,
+    );
+    expect(msg.text).toContain("UBICACIÓN COMPARTIDA");
+    expect(msg.text).toContain("https://www.google.com/maps?q=-17.7833,-63.1821");
+  });
+
+  it("incluye título y dirección cuando es un 'venue'", async () => {
+    const msg = await telegramAdapter.parseIncoming(
+      makeReq({
+        update_id: 6,
+        message: {
+          message_id: 15,
+          from: { id: 555, first_name: "Ana", is_bot: false },
+          chat: { id: 555, type: "private" },
+          date: 100,
+          venue: {
+            location: { latitude: -17.78, longitude: -63.18 },
+            title: "Casa",
+            address: "Barrio Las Palmas, calle 3",
+          },
+        },
+      }),
+      env,
+    );
+    expect(msg.text).toContain("Casa, Barrio Las Palmas, calle 3");
+  });
+
+  it("convierte un contacto compartido en texto", async () => {
+    const msg = await telegramAdapter.parseIncoming(
+      makeReq({
+        update_id: 7,
+        message: {
+          message_id: 16,
+          from: { id: 555, first_name: "Ana", is_bot: false },
+          chat: { id: 555, type: "private" },
+          date: 100,
+          contact: { phone_number: "+59171234567", first_name: "Ana" },
+        },
+      }),
+      env,
+    );
+    expect(msg.text).toContain("CONTACTO COMPARTIDO");
+    expect(msg.text).toContain("+59171234567");
+  });
+
   it("flags the owner's own message via OWNER_TELEGRAM_CHAT_ID", async () => {
     const ownerEnv = { TELEGRAM_BOT_TOKEN: "t", OWNER_TELEGRAM_CHAT_ID: "999" } as Env;
     const msg = await telegramAdapter.parseIncoming(

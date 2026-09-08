@@ -6,6 +6,7 @@ export interface SystemPromptInput {
   businessName: string;
   language: string;
   businessContext: string;          // services, hours, location, etc.
+  nicheRules?: string;              // <reglas_del_negocio> block (envío, pago…) — rendered from the niche pack
   toolList: string[];               // names of available tools
   nichoPlaybook?: string;           // injected by skill at deploy time
   tone?: string;                    // owner-chosen tone (e.g. "cálido y cercano")
@@ -41,6 +42,8 @@ Si una pregunta no tiene respuesta en lo que sabes, escalas a un humano.
 <business_context>
 {{BUSINESS_CONTEXT}}
 </business_context>
+
+{{REGLAS_NEGOCIO}}
 
 <identity_and_voice>
 - Tono cálido, directo, premium. Como teammate del negocio, no agente call-center.
@@ -165,6 +168,7 @@ Solo manda YYYY-MM-DD si el cliente dio una fecha de calendario (día y mes).
     .replaceAll("{{BOT_NAME}}", input.botName)
     .replaceAll("{{BUSINESS_NAME}}", input.businessName)
     .replaceAll("{{BUSINESS_CONTEXT}}", input.businessContext)
+    .replaceAll("{{REGLAS_NEGOCIO}}", input.nicheRules?.trim() ?? "")
     .replaceAll("{{TOOL_LIST}}", toolList)
     .replaceAll("{{NICHO_PLAYBOOK}}", input.nichoPlaybook ?? "")
     .replaceAll("{{LECCIONES}}", lessonsBlock)
@@ -179,6 +183,7 @@ export interface SystemPromptOverrides {
   botName?: string;
   lessons?: string[];
   customInstructions?: string;
+  nicheRules?: string;
 }
 
 /** Fecha/hora actual legible + ISO en la zona del negocio (ancla "hoy"/"mañana"). */
@@ -211,6 +216,7 @@ export function systemPromptFromEnv(
     businessName: env.BUSINESS_NAME,
     language: env.BOT_LANGUAGE,
     businessContext,
+    nicheRules: overrides?.nicheRules,
     toolList: toolNames,
     nichoPlaybook,
     tone: overrides?.tone,

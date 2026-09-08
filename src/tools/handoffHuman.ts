@@ -26,9 +26,19 @@ export function handoffHumanTool(env: Env, getConversationId: () => string | nul
         summary: `[${reason}] ${summary}`,
         transcript: "", // populated by agent if it has access; left blank otherwise
       });
+      let cliente: string | undefined;
       if (convId) {
         const convs = new ConversationsRepo(db);
         await convs.setOpenTicket(convId, ticketId);
+        try {
+          const conv = await convs.getById(convId);
+          if (conv) {
+            const via = conv.channel ? ` (${conv.channel})` : "";
+            cliente = `${conv.display_name || conv.channel_user_id || "cliente"}${via}`;
+          }
+        } catch {
+          /* best-effort */
+        }
       }
 
       // Send email if Resend configured
@@ -54,7 +64,7 @@ export function handoffHumanTool(env: Env, getConversationId: () => string | nul
       // and, because this is a business-INITIATED message outside any 24h
       // session window, MUST use a pre-approved Content Template (HSM) — free
       // text would be rejected by WhatsApp. Both are best-effort.
-      await notifyOwner(env, { reason, summary, ticketId });
+      await notifyOwner(env, { reason, summary, ticketId, cliente });
 
       return { ticketId };
     },
@@ -65,6 +75,7 @@ interface HandoffNotice {
   reason: string;
   summary: string;
   ticketId: string;
+  cliente?: string;
 }
 
 /**
@@ -135,7 +146,9 @@ export async function notifyOwner(env: Env, notice: HandoffNotice): Promise<void
           body: JSON.stringify({
             chat_id: env.OWNER_TELEGRAM_CHAT_ID,
             text:
-              `🚨 Nuevo ticket [${notice.reason}]\n${notice.summary}\n\nVer: ${ticketUrl}`,
+              `🚨 Un cliente necesita que lo atiendas${notice.cliente ? `\nCliente: ${notice.cliente}` : ""}\n` +
+              `Motivo: ${notice.reason}\n${notice.summary}\n\n` +
+              `Abrí la conversación y respondele desde el panel:\n${ticketUrl}`,
           }),
         },
       );

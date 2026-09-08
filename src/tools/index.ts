@@ -8,6 +8,12 @@ import { captureLeadTool } from "./captureLead";
 import { scheduleAppointmentTool } from "./scheduleAppointment";
 import { catalogQueryTool } from "./catalogQuery";
 import { sendPaymentQrTool } from "./sendPaymentQr";
+import { sendProductPhotoTool } from "./sendProductPhoto";
+import { registrarPedidoTool } from "./registrarPedido";
+import { apartarProductoTool } from "./apartarProducto";
+import { estadoPedidoTool } from "./estadoPedido";
+import { anotarEnEsperaTool } from "./anotarEnEspera";
+import { getNiche } from "../niches";
 import type { ChannelId } from "../channels/shared";
 
 export interface ToolContext {
@@ -38,6 +44,22 @@ export function buildTools(ctx: ToolContext) {
   // Pro tier additions
   if (isPro(ctx.env)) {
     tools.catalogQuery = catalogQueryTool(ctx.env);
+    // Mandar fotos del producto: mismo tier que consultar catálogo (necesita la fuente).
+    tools.sendProductPhoto = sendProductPhotoTool(ctx.env, ctx.getChannel, ctx.getChannelUserId);
+
+    // Herramientas de tienda: registrar pedidos, consultar su estado y anotar
+    // en lista de espera. Solo tienen sentido con el pack "tienda".
+    if (getNiche(ctx.env).id === "tienda") {
+      tools.registrarPedido = registrarPedidoTool(ctx.env, ctx.getConversationId);
+      tools.apartarProducto = apartarProductoTool(ctx.env, ctx.getConversationId);
+      tools.estadoPedido = estadoPedidoTool(ctx.env, ctx.getConversationId);
+      tools.anotarEnEspera = anotarEnEsperaTool(
+        ctx.env,
+        ctx.getConversationId,
+        ctx.getChannel,
+        ctx.getChannelUserId,
+      );
+    }
   }
 
   return tools;

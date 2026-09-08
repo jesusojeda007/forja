@@ -5,6 +5,7 @@ import { systemPromptFromEnv } from "./system-prompt";
 import { renderBusinessContext } from "./businessContext";
 import { getBufferMs } from "./config";
 import { getNiche } from "./niches";
+import { renderNicheRules, parseStoreRules } from "./niches/rules";
 import type { LlmOverrides } from "./llm/provider";
 
 export type ModelOverride = "auto" | "haiku" | "sonnet";
@@ -101,6 +102,11 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
   const tone = get(SETTING_KEYS.tone) ?? (niche.defaultTone || undefined);
   const escalationKeywords = parseCsvList(get(SETTING_KEYS.escalationKeywords));
 
+  // Reglas del negocio (envío, pago, cambios…): la FORMA la trae el niche pack,
+  // los valores viven en settings.store_rules. Se inyectan como bloque propio
+  // en el prompt GENERADO (un override manual reemplaza todo, reglas incluidas).
+  const nicheRules = renderNicheRules(niche, parseStoreRules(get(SETTING_KEYS.storeRules)));
+
   // Flywheel lessons (JSON array). Only injected into the GENERATED prompt —
   // a manual override replaces the whole prompt, lessons included.
   let lessons: string[] = [];
@@ -111,8 +117,12 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
 
   // Dashboard tool toggles: the prompt only advertises the enabled tools, so
   // the model never tries to call something that was turned off.
-  const disabledTools = parseCsvList(get(SETTING_KEYS.disabledTools));
-  const enabledToolNames = toolNames.filter((n) => !disabledTools.includes(n));
+  // Tools apagadas: las del panel (disabled_tools) + las que el rubro no ofrece.
+  const disabledTools = new Set([
+    ...parseCsvList(get(SETTING_KEYS.disabledTools)),
+    ...(niche.disabledTools ?? []),
+  ]);
+  const enabledToolNames = toolNames.filter((n) => !disabledTools.has(n));
 
   const systemPrompt =
     systemPromptOverride ??
@@ -122,6 +132,7 @@ export async function resolveAgentConfig(env: Env, toolNames: string[]): Promise
       botName,
       lessons,
       customInstructions,
+      nicheRules,
     });
 
   const bufferSecondsRaw = get(SETTING_KEYS.bufferSeconds);

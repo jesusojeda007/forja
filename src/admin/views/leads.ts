@@ -38,17 +38,26 @@ export async function renderLeads(env: Env): Promise<string> {
   } else {
     cols.push({ h: "Resumen · click para ver detalle", w: "minmax(200px,1.8fr)", cell: (l) => `<span class="text-muted truncate">${esc(l.intent)}</span>` });
   }
+  const STATUS_C: Record<string, { c: string; bg: string }> = {
+    new: { c: "var(--accent)", bg: "var(--accent-soft)" },
+    contacted: { c: "var(--info)", bg: "var(--info-soft)" },
+    sold: { c: "var(--ok)", bg: "var(--ok-soft)" },
+    lost: { c: "var(--dim)", bg: "var(--panel2)" },
+  };
   cols.push({
     h: "Estado",
     w: "132px",
-    cell: (l) => `<form method="POST" action="/admin/leads/${l.id}/status" onclick="event.stopPropagation()">
+    cell: (l) => {
+      const sc = STATUS_C[l.status] ?? STATUS_C.new;
+      return `<form method="POST" action="/admin/leads/${l.id}/status" onclick="event.stopPropagation()">
       <select name="status" onchange="this.form.submit()"
-              style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--cream);padding:6px 8px;font-size:11px;outline:none;cursor:pointer">
+              style="width:100%;background:${sc.bg};border:1px solid ${sc.c};color:${sc.c};font-weight:600;padding:6px 8px;font-size:11px;outline:none;cursor:pointer;border-radius:var(--r-pill)">
         ${(["new", "contacted", "sold", "lost"] as const)
-          .map((s) => `<option ${l.status === s ? "selected" : ""} value="${s}">${esc(statusLabel(s))}</option>`)
+          .map((s) => `<option ${l.status === s ? "selected" : ""} value="${s}" style="color:var(--cream);background:var(--panel)">${esc(statusLabel(s))}</option>`)
           .join("")}
       </select>
-    </form>`,
+    </form>`;
+    },
   });
 
   const gridCols = cols.map((c) => c.w).join(" ");
@@ -101,7 +110,7 @@ export async function renderLeads(env: Env): Promise<string> {
   const body = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <h2 class="font-display font-semibold text-[15px] text-cream">${esc(niche.recordPlural)}</h2>
-      <a href="/admin/leads/export.csv" class="ghostbtn" style="display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:9px 14px;font-size:12.5px;transition:all .12s ease">
+      <a href="/admin/leads/export.csv" hx-boost="false" class="ghostbtn" style="display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:9px 14px;font-size:12.5px;transition:all .12s ease">
         <i data-lucide="download" width="14" height="14"></i> Exportar CSV
       </a>
     </div>

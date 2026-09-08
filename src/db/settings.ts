@@ -36,6 +36,10 @@ export const SETTING_KEYS = {
   // Catálogo por URL: feed público del propio negocio (Shopify products.json,
   // WooCommerce store API o CSV de Google Sheets). Se cachea en D1 con TTL.
   catalogSourceUrl: "catalog_source_url",
+  // Reglas del negocio configurables por rubro (envío, pago, cambios…). JSON
+  // { [ruleKey]: valor }; la FORMA la define niche.rules. Se inyecta al prompt
+  // como <reglas_del_negocio>. Vacío = el bot no promete nada estructurado.
+  storeRules: "store_rules",
 } as const;
 
 export type SettingKey = (typeof SETTING_KEYS)[keyof typeof SETTING_KEYS];

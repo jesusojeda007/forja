@@ -35,7 +35,7 @@ describe("buildTools", () => {
     expect(tools.catalogQuery).toBeUndefined();
   });
 
-  it("pro tier has the 7 base tools plus catalogQuery (Pro)", () => {
+  it("pro tier has the base tools plus catalogQuery y sendProductPhoto (Pro)", () => {
     const tools = buildTools(makeCtx("pro"));
     expect(Object.keys(tools).sort()).toEqual([
       "captureLead",
@@ -45,10 +45,24 @@ describe("buildTools", () => {
       "scheduleAppointment",
       "searchKb",
       "sendPaymentQr",
+      "sendProductPhoto",
       "snoozeUser",
     ]);
     expect(tools.scheduleAppointment).toBeDefined();
     expect(tools.catalogQuery).toBeDefined();
+    expect(tools.sendProductPhoto).toBeDefined();
+  });
+
+  it("el pack tienda agrega registrarPedido, estadoPedido y anotarEnEspera", () => {
+    const tools = buildTools(makeCtx("pro", "tienda"));
+    expect(tools.registrarPedido).toBeDefined();
+    expect(tools.apartarProducto).toBeDefined();
+    expect(tools.estadoPedido).toBeDefined();
+    expect(tools.anotarEnEspera).toBeDefined();
+    // y no aparecen sin el pack
+    expect(buildTools(makeCtx("pro")).registrarPedido).toBeUndefined();
+    // ni en free
+    expect(buildTools(makeCtx("free", "tienda")).registrarPedido).toBeUndefined();
   });
 
   it("el Starter genérico no agrega tools de nicho (aunque BOT_NICHE traiga un giro)", () => {

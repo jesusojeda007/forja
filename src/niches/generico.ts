@@ -15,5 +15,6 @@ export const generico: NichePack = {
   playbook: "",
   defaultTone: "",
   kbDocs: [],
-  hiddenTabs: [],
+  // "Pedidos" es del pack tienda (tabla orders + tools registrarPedido/estadoPedido).
+  hiddenTabs: ["pedidos"],
 };

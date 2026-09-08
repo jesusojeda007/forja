@@ -1,15 +1,11 @@
 /**
  * Admin dashboard routes (Hono sub-app mounted at `/admin`).
  *
- * Auth is HTTP Basic Auth (owner override of the original magic-link plan):
- * every route is guarded by `adminAuth(env)`, which prompts the browser's
- * native Basic Auth dialog. Username is always "admin", password lives in the
- * `DASHBOARD_PASSWORD` secret. There are NO /login or /logout routes — Basic
- * Auth does not need them.
- *
- * Because the Basic Auth middleware needs the per-request `Env` (to read
- * `DASHBOARD_PASSWORD` from the binding), it is applied inside a wildcard
- * middleware that has access to `c.env` rather than at module-init time.
+ * Auth: a normal login form at `/admin/login` that sets a signed session
+ * cookie (see src/admin/session.ts). HTTP Basic Auth still works in parallel
+ * for curl / API clients. The single password lives in `DASHBOARD_PASSWORD`
+ * (username is always "admin"). A browser with neither a session nor Basic
+ * Auth is redirected to the login form; non-browser requests get a 401.
  */
 import { parsePeerBots } from "./projects";
 import { Hono } from "hono";
@@ -17,8 +13,9 @@ import { generateText } from "ai";
 import { createModel } from "../llm/provider";
 import { loadLlmOverrides } from "../settings-loader";
 import type { Env } from "../env";
-import { adminAuth } from "./auth";
-import { layout, renderUpgrade } from "./views/layout";
+import { checkBasicCredentials, timingSafeEqual } from "./auth";
+import { hasAdminSession, startAdminSession, endAdminSession } from "./session";
+import { layout, renderUpgrade, loginPage } from "./views/layout";
 import { isPro } from "../config";
 import { renderOverview } from "./views/overview";
 import { renderStats } from "./views/stats";
@@ -41,9 +38,12 @@ import { renderMejoras } from "./views/mejoras";
 import { runFlywheel, getLessons, saveLessons } from "../flywheel/detect";
 import { applySuggestion, dismissSuggestion } from "../flywheel/apply";
 import { renderLeads, exportLeadsCsv } from "./views/leads";
+import { renderPedidos } from "./views/pedidos";
+import { OrdersRepo, type OrderStatus } from "../db/orders";
 import { renderTickets } from "./views/tickets";
 import { renderConfig } from "./views/config";
 import { renderClientes, renderCliente } from "./views/clientes";
+import { renderEmbudo, renderEmbudoBoard } from "./views/embudo";
 import { savePaymentQr } from "../payments/qr-storage";
 import { renderConexiones } from "./views/conexiones";
 import { renderCampanas } from "./views/campanas";
@@ -57,17 +57,77 @@ import { SettingsRepo, SETTING_KEYS, type SettingKey } from "../db/settings";
 import { CONTROLS, levelToValue } from "./control-levels";
 import { systemPromptFromEnv } from "../system-prompt";
 import { renderBusinessContext } from "../businessContext";
+import { getNiche } from "../niches";
+import { parseStoreRules } from "../niches/rules";
 
 export const adminApp = new Hono<{ Bindings: Env }>();
 
-// Guard every admin route with Basic Auth. The middleware factory needs the
-// request-scoped Env to read DASHBOARD_PASSWORD, so build it per request here.
-// DASHBOARD_PUBLIC="1" (wrangler.toml de esta instancia) apaga el guard —
-// el panel es público a propósito (decisión de diseño de la instancia).
-// Para volver a protegerlo: quitar esa var y redeploy.
-adminApp.use("*", (c, next) => {
+// Normaliza la barra final: "/admin/" o "/admin/config/" → sin barra. Hono
+// monta el sub-app en "/admin" y una ruta con barra final no matchea ningún
+// handler (daba 404). Redirige antes de cualquier otra cosa.
+adminApp.use("*", async (c, next) => {
+  const url = new URL(c.req.url);
+  if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    return c.redirect(url.pathname + url.search, 308);
+  }
+  await next();
+});
+
+// Guard every admin route. Dos formas de entrar:
+//   1. Cookie de sesión firmada — el dueño hace login una vez en /admin/login
+//      con un formulario normal (ver src/admin/session.ts).
+//   2. HTTP Basic Auth — para curl, clientes de API y compatibilidad.
+// Un navegador sin sesión ni Basic Auth se redirige al formulario de login
+// (no un 401 con diálogo nativo). Peticiones no-navegador siguen recibiendo 401.
+// DASHBOARD_PUBLIC="1" apaga el guard por completo (decisión de la instancia).
+adminApp.use("*", async (c, next) => {
   if (c.env.DASHBOARD_PUBLIC === "1") return next();
-  return adminAuth(c.env)(c, next);
+
+  // El sub-app puede montarse en "/admin" (prod) o consultarse suelto (tests);
+  // normalizamos a la ruta relativa para comparar.
+  const rel = c.req.path.replace(/^\/admin(?=\/|$)/, "") || "/";
+  if (rel === "/login" || rel === "/logout") return next();
+
+  if (await hasAdminSession(c)) return next();
+  if (checkBasicCredentials(c.req.header("authorization"), c.env)) return next();
+
+  const wantsHtml =
+    c.req.method === "GET" && (c.req.header("accept") ?? "").includes("text/html");
+  if (wantsHtml) {
+    const qs = c.req.url.includes("?") ? "?" + c.req.url.split("?").slice(1).join("?") : "";
+    const next_ = encodeURIComponent("/admin" + rel + qs);
+    return c.redirect(`/admin/login?next=${next_}`);
+  }
+  return c.text("Unauthorized", 401, { "WWW-Authenticate": 'Basic realm="admin"' });
+});
+
+// --- Login / logout -------------------------------------------------------
+adminApp.get("/login", async (c) => {
+  if (c.env.DASHBOARD_PUBLIC === "1" || (await hasAdminSession(c))) {
+    return c.redirect("/admin/overview");
+  }
+  const next = c.req.query("next");
+  return c.html(
+    loginPage(c.env, { error: c.req.query("error") === "1", next: next ?? undefined }),
+  );
+});
+
+adminApp.post("/login", async (c) => {
+  const form = await c.req.formData();
+  const password = String(form.get("password") ?? "");
+  const next = c.req.query("next");
+  if (!timingSafeEqual(password, c.env.DASHBOARD_PASSWORD ?? "\0")) {
+    const q = next && next.startsWith("/admin") ? `&next=${encodeURIComponent(next)}` : "";
+    return c.redirect(`/admin/login?error=1${q}`);
+  }
+  await startAdminSession(c);
+  return c.redirect(next && next.startsWith("/admin") ? next : "/admin/overview");
+});
+
+adminApp.post("/logout", (c) => {
+  endAdminSession(c);
+  return c.redirect("/admin/login");
 });
 
 // Gate de tier: el panel free ve el nav Pro bloqueado; si aun así navega a una
@@ -362,6 +422,9 @@ adminApp.post("/agente/tools/:name/toggle", async (c) => {
   return c.html((await renderNodeModal(c.env, `tool:${name}`, true)) + toastOob("✓ Guardado"));
 });
 
+adminApp.get("/embudo", async (c) => c.html(await renderEmbudo(c.env)));
+adminApp.get("/embudo/board", async (c) => c.html(await renderEmbudoBoard(c.env)));
+
 adminApp.get("/clientes", async (c) =>
   c.html(await renderClientes(c.env, { q: c.req.query("q") ?? "", f: c.req.query("f") ?? "" })),
 );
@@ -371,6 +434,8 @@ adminApp.get("/clientes/:cu", async (c) =>
 );
 
 adminApp.get("/leads", async (c) => c.html(await renderLeads(c.env)));
+
+adminApp.get("/pedidos", async (c) => c.html(await renderPedidos(c.env)));
 
 adminApp.get("/tickets", async (c) => c.html(await renderTickets(c.env)));
 
@@ -464,7 +529,8 @@ adminApp.get("/config/llm-test", async (c) => {
     const r = await generateText({
       model,
       prompt: "Responde únicamente: ok",
-      maxOutputTokens: 8,
+      // Algunos modelos (p. ej. los de OpenCode Go) exigen un mínimo de 16.
+      maxOutputTokens: 32,
     });
     const okText = r.text.trim().slice(0, 20) || "ok";
     return c.redirect(
@@ -534,6 +600,30 @@ adminApp.post("/config", async (c) => {
   return c.redirect("/admin/config?saved=1");
 });
 
+// Guarda las "Reglas de {rubro}" (envío, pago, cambios…). La FORMA la define
+// el niche pack activo; acá solo recogemos rule_<key> del form y lo mergeamos
+// sobre el JSON store_rules existente (parcial-safe: si un campo no vino, se
+// conserva su valor previo).
+adminApp.post("/config/rules", async (c) => {
+  const form = await c.req.formData();
+  const repo = new SettingsRepo(new Db(c.env.DB));
+  const niche = getNiche(c.env);
+  const current = parseStoreRules(await repo.get(SETTING_KEYS.storeRules));
+
+  for (const grp of niche.rules ?? []) {
+    for (const rule of grp.rules) {
+      const raw = form.get(`rule_${rule.key}`);
+      if (raw === null) continue; // campo no enviado — conservar
+      const v = String(raw).trim().slice(0, 500);
+      if (v === "") delete current[rule.key];
+      else current[rule.key] = v;
+    }
+  }
+
+  await repo.set(SETTING_KEYS.storeRules, JSON.stringify(current));
+  return c.redirect("/admin/config?saved=1");
+});
+
 // --- CSV export -------------------------------------------------------------
 
 adminApp.get("/leads/export.csv", async (c) => {
@@ -560,6 +650,25 @@ adminApp.post("/leads/:id/status", async (c) => {
   const leads = new LeadsRepo(new Db(c.env.DB));
   await leads.setStatus(c.req.param("id"), status);
   return c.redirect("/admin/leads");
+});
+
+const ORDER_STATUSES: readonly OrderStatus[] = [
+  "pendiente",
+  "reservado",
+  "pagado",
+  "enviado",
+  "entregado",
+  "cancelado",
+];
+
+adminApp.post("/pedidos/:id/status", async (c) => {
+  const form = await c.req.formData();
+  const raw = String(form.get("status") ?? "pendiente");
+  const status: OrderStatus = (ORDER_STATUSES as readonly string[]).includes(raw)
+    ? (raw as OrderStatus)
+    : "pendiente";
+  await new OrdersRepo(new Db(c.env.DB)).setStatus(c.req.param("id"), status);
+  return c.redirect("/admin/pedidos");
 });
 
 // Resolve a support ticket.

@@ -255,43 +255,43 @@ export async function renderOverview(env: Env): Promise<string> {
   const body = `
     <div class="flex flex-col gap-[22px]">
       <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[14px]">
-        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.02s">
+        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.02s;border-top:2px solid var(--info)">
           <div class="absolute top-3 right-3 text-[9.5px] tracking-[.2em] text-dim uppercase">01</div>
-          <div class="flex items-center gap-2 text-muted">
+          <div class="flex items-center gap-2" style="color:var(--info)">
             <i data-lucide="message-circle" width="15" height="15"></i>
             <span class="text-[11px] tracking-[.05em]">MENSAJES HOY</span>
           </div>
-          <div class="glow font-display font-bold text-[38px] leading-none mt-3">${todayMsgs}</div>
+          <div class="glow font-display font-bold text-[38px] leading-none mt-3" style="color:var(--info)">${todayMsgs}</div>
           <div class="text-[11px] text-dim mt-2">últimas 24 horas</div>
         </div>
 
-        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.06s">
+        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.06s;border-top:2px solid var(--violet)">
           <div class="absolute top-3 right-3 text-[9.5px] tracking-[.2em] text-dim uppercase">02</div>
-          <div class="flex items-center gap-2 text-muted">
+          <div class="flex items-center gap-2" style="color:var(--violet)">
             <i data-lucide="users" width="15" height="15"></i>
             <span class="text-[11px] tracking-[.05em]">CLIENTES ÚNICOS</span>
           </div>
-          <div class="glow font-display font-bold text-[38px] leading-none mt-3">${todayConvs}</div>
+          <div class="glow font-display font-bold text-[38px] leading-none mt-3" style="color:var(--violet)">${todayConvs}</div>
           <div class="text-[11px] text-dim mt-2">conversaciones distintas hoy</div>
         </div>
 
-        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.1s">
+        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.1s;border-top:2px solid var(--accent)">
           <div class="absolute top-3 right-3 text-[9.5px] tracking-[.2em] text-dim uppercase">03</div>
-          <div class="flex items-center gap-2 text-muted">
+          <div class="flex items-center gap-2" style="color:var(--accent)">
             <i data-lucide="${niche.navIcon}" width="15" height="15"></i>
             <span class="text-[11px] tracking-[.05em]">${niche.kpiLabel.toUpperCase()}</span>
           </div>
-          <div class="glow font-display font-bold text-[38px] leading-none mt-3 text-accent">${todayLeads}</div>
+          <div class="glow font-display font-bold text-[38px] leading-none mt-3" style="color:var(--accent)">${todayLeads}</div>
           <div class="text-[11px] text-dim mt-2">nuevos hoy</div>
         </div>
 
-        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.14s">
+        <div class="card bg-panel border border-line p-4 relative overflow-hidden" style="animation-delay:.14s;border-top:2px solid var(--amber)">
           <div class="absolute top-3 right-3 text-[9.5px] tracking-[.2em] text-dim uppercase">04</div>
-          <div class="flex items-center gap-2 text-muted">
+          <div class="flex items-center gap-2" style="color:var(--amber)">
             <i data-lucide="coins" width="15" height="15"></i>
             <span class="text-[11px] tracking-[.05em]">COSTO DEL MES</span>
           </div>
-          <div class="glow font-display font-bold text-[38px] leading-none mt-3">$${totalCost.toFixed(2)}</div>
+          <div class="glow font-display font-bold text-[38px] leading-none mt-3" style="color:var(--amber)">$${totalCost.toFixed(2)}</div>
           <div class="text-[11px] text-dim mt-2">${monthMsgs} mensajes · Claude · 30 días</div>
         </div>
       </section>

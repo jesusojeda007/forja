@@ -10,6 +10,18 @@ export interface CatalogItem {
   description?: string;
   sku?: string;
   url?: string;
+  /** Foto principal del producto (URL absoluta), si la fuente la trae. */
+  image?: string;
+  /** Unidades disponibles, si la fuente las trae. El bot decide si las menciona. */
+  stock?: number;
+  /** Ficha técnica / características, si la fuente las trae. */
+  features?: string;
+  /** Qué incluye el producto (accesorios, piezas). */
+  includes?: string;
+  /** Colores disponibles, separados por coma. */
+  colors?: string;
+  /** Categoría / rubro del producto en la tienda. */
+  category?: string;
 }
 
 /** Refresco lazy: TTL de 1h. El bot responde con snapshot si la fuente cae. */
@@ -85,14 +97,18 @@ export function normalizeSource(text: string, sourceUrl: string): CatalogItem[] 
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
     try {
       const json = JSON.parse(trimmed);
-      if (json && typeof json === "object" && Array.isArray(json.products)) {
-        return normalizeShopify(json.products, sourceUrl);
+      if (json && typeof json === "object" && !Array.isArray(json)) {
+        if (Array.isArray(json.products)) return normalizeShopify(json.products, sourceUrl);
+        // Endpoints custom que envuelven la lista: { success, data: [...] },
+        // { items: [...] }, { results: [...] }.
+        const wrapped = json.data ?? json.items ?? json.results;
+        if (Array.isArray(wrapped)) return normalizeGeneric(wrapped, sourceUrl);
       }
       if (Array.isArray(json)) {
         if (json.some((it) => it && typeof it === "object" && it.prices)) {
           return normalizeWoo(json);
         }
-        return normalizeGeneric(json);
+        return normalizeGeneric(json, sourceUrl);
       }
     } catch {
       // JSON roto: cae a CSV por si acaso
@@ -119,6 +135,11 @@ function normalizeShopify(products: any[], sourceUrl: string): CatalogItem[] {
         description: stripHtml(p.body_html),
         sku: v?.sku ? String(v.sku) : undefined,
         url: origin && p.handle ? `${origin}/products/${p.handle}` : undefined,
+        image: p.image?.src
+          ? String(p.image.src)
+          : Array.isArray(p.images) && p.images[0]?.src
+            ? String(p.images[0].src)
+            : undefined,
       };
     })
     .filter((it) => it.name && it.price > 0);
@@ -142,17 +163,59 @@ function normalizeWoo(items: any[]): CatalogItem[] {
     .filter((it) => it.name && it.price > 0);
 }
 
-/** Array JSON genérico: name/title, price/precio, description, sku, url/link. */
-function normalizeGeneric(items: any[]): CatalogItem[] {
+/**
+ * Array JSON genérico: name/title/nombre/producto, price/precio/amount,
+ * description/descripcion, sku/codigo, url/link/enlace (relativas → absolutas
+ * con el origin de la fuente), stock/existencia.
+ */
+function normalizeGeneric(items: any[], sourceUrl = ""): CatalogItem[] {
+  let origin = "";
+  try {
+    origin = sourceUrl ? new URL(sourceUrl).origin : "";
+  } catch {
+    origin = "";
+  }
   return items
     .filter((it) => it && typeof it === "object")
-    .map((it) => ({
-      name: String(it.name ?? it.title ?? it.nombre ?? it.producto ?? "").trim(),
-      price: parseMonto(String(it.price ?? it.precio ?? it.amount ?? "")) ?? 0,
-      description: it.description ?? it.descripcion ? String(it.description ?? it.descripcion) : undefined,
-      sku: it.sku ? String(it.sku) : undefined,
-      url: it.url ?? it.link ?? it.enlace ? String(it.url ?? it.link ?? it.enlace) : undefined,
-    }))
+    .map((it) => {
+      const abs = (raw: unknown): string | undefined => {
+        if (!raw) return undefined;
+        const s = String(raw).trim();
+        if (!s) return undefined;
+        return s.startsWith("/") && origin ? origin + s : s;
+      };
+      const url = abs(it.url ?? it.link ?? it.enlace);
+      const rawImg =
+        it.imagen ?? it.image ?? it.img ?? it.foto ?? it.photo ?? it.picture ??
+        (Array.isArray(it.imagenes) ? it.imagenes[0] : undefined) ??
+        (Array.isArray(it.images) ? it.images[0] : undefined);
+      const image = abs(typeof rawImg === "object" && rawImg ? rawImg.src ?? rawImg.url : rawImg);
+      const rawStock = it.stock ?? it.existencia ?? it.disponibles;
+      const stock = rawStock != null && Number.isFinite(Number(rawStock)) ? Number(rawStock) : undefined;
+      const rawSku = it.sku ?? it.codigo ?? it["código"] ?? it.code;
+      const str = (v: unknown): string | undefined => {
+        if (v == null) return undefined;
+        const s = Array.isArray(v) ? v.filter(Boolean).join(", ") : String(v);
+        return s.trim() || undefined;
+      };
+      return {
+        name: String(it.name ?? it.title ?? it.nombre ?? it.producto ?? "").trim(),
+        // precio_descuento gana si viene y es válido (> 0).
+        price:
+          (parseMonto(String(it.precio_descuento ?? "")) || 0) ||
+          (parseMonto(String(it.price ?? it.precio ?? it.amount ?? "")) ?? 0),
+        description:
+          it.description ?? it.descripcion ? String(it.description ?? it.descripcion) : undefined,
+        sku: rawSku ? String(rawSku) : undefined,
+        url,
+        image,
+        stock,
+        features: str(it.caracteristicas ?? it["características"] ?? it.features ?? it.specs),
+        includes: str(it.incluye ?? it.includes),
+        colors: str(it.colores ?? it.colors),
+        category: str(it.categoria ?? it["categoría"] ?? it.category),
+      };
+    })
     .filter((it) => it.name && it.price > 0);
 }
 

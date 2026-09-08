@@ -325,6 +325,9 @@ export default {
     // mejoras en /admin/mejoras. Corre DESPUÉS del analizador (usa su output).
     const { runFlywheel } = await import("./flywheel/detect");
     await runFlywheel(env).catch((e) => console.error("flywheel:", e));
+    // Tienda: avisa al dueño qué productos agotados volvieron con lista de espera.
+    const { checkStockWaitlist } = await import("./crons/stockWaitlist");
+    await checkStockWaitlist(env).catch((e) => console.error("stockWaitlist:", e));
     // Modo COPILOTO (autonomy_level="copilot"): auto-aplica las mejoras seguras
     // detectadas (lecciones + KB sin huecos). Lo delicado espera al dueño.
     try {

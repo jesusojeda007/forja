@@ -10,6 +10,9 @@
 // llegan en el body, así que cada sección puede postear por su cuenta.
 import type { Env } from "../../env";
 import { SETTING_KEYS } from "../../db/settings";
+import { getNiche } from "../../niches";
+import { parseStoreRules } from "../../niches/rules";
+import type { NicheRule, ConfigTabId, NichePack } from "../../niches/types";
 import { renderBusinessContext } from "../../businessContext";
 import { CURATED_MODELS } from "../../llm/provider";
 import {
@@ -167,6 +170,7 @@ function renderLlmFields(settings: Record<string, string>): string {
           </select>
         </div>
       </div>
+      <p class="text-dim text-[11px]" style="margin:-6px 0 0">Si tu llave es de un <strong>gateway</strong> compatible (OpenCode Zen, OpenRouter, Groq…), dejá <strong>Proveedor</strong> y <strong>Modelo</strong> en <strong>Automático</strong>: la conexión y los modelos ya están configurados del lado del servidor. Elegí un proveedor o modelo puntual solo si usás una llave directa de Anthropic, OpenAI o xAI.</p>
       <div style="display:flex;flex-direction:column;gap:6px">
         <label class="font-display font-semibold text-[12.5px] text-cream">Tu API key (opcional)</label>
         <p class="text-dim text-[11px]">${hasKey ? `Hay una key guardada (termina en …${esc(keyTail)}). Escribe una nueva para reemplazarla, o marca la casilla para quitarla.` : "Pégala aquí para que el consumo se cobre a tu cuenta. Vacío = usar la key incluida del sistema."}</p>
@@ -189,6 +193,144 @@ function renderLlmTestBanner(llmTest?: string): string {
   return "";
 }
 
+/** Un campo de regla del negocio (toggle / select / text / number). */
+function renderRuleField(rule: NicheRule, value: string): string {
+  const name = `rule_${rule.key}`;
+  const labelBlock = `
+      <label for="${esc(name)}" class="font-display font-semibold text-[12.5px] text-cream">${esc(rule.label)}</label>
+      ${rule.help ? `<p class="text-dim text-[11px]">${esc(rule.help)}</p>` : ""}`;
+
+  if (rule.type === "toggle") {
+    const yes = value === "si";
+    return `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${labelBlock}
+      <select id="${esc(name)}" name="${esc(name)}" style="${SELECT_STYLE}">
+        <option value="si" ${yes ? "selected" : ""}>Sí</option>
+        <option value="no" ${!yes ? "selected" : ""}>No</option>
+      </select>
+    </div>`;
+  }
+
+  if (rule.type === "select") {
+    const opts = (rule.options ?? [])
+      .map(
+        (o) =>
+          `<option value="${esc(o.value)}" ${value === o.value ? "selected" : ""}>${esc(o.label)}</option>`,
+      )
+      .join("");
+    return `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${labelBlock}
+      <select id="${esc(name)}" name="${esc(name)}" style="${SELECT_STYLE}">
+        <option value="" ${value === "" ? "selected" : ""}>— sin definir —</option>
+        ${opts}
+      </select>
+    </div>`;
+  }
+
+  const inputType = rule.type === "number" ? "number" : "text";
+  return `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${labelBlock}
+      <input type="${inputType}" id="${esc(name)}" name="${esc(name)}"
+             value="${esc(value)}" placeholder="${esc(rule.placeholder ?? "")}"
+             style="${INPUT_STYLE}">
+    </div>`;
+}
+
+/**
+ * Sección "Reglas de {rubro}": la trae el niche pack activo (env.BOT_NICHE).
+ * Los valores viven en settings.store_rules (JSON) y se postean a
+ * /admin/config/rules. Rubro sin reglas => "" (no se muestra la sección).
+ */
+function renderRulesSection(env: Env, settings: Record<string, string>): string {
+  const niche = getNiche(env);
+  if (!niche.rules?.length) return "";
+  const values = parseStoreRules(settings[SETTING_KEYS.storeRules]);
+
+  const groups = niche.rules
+    .map(
+      (grp) => `
+      <fieldset style="display:flex;flex-direction:column;gap:14px;border:none;margin:0;padding:0">
+        <legend class="font-display font-semibold text-[13.5px] text-cream">${esc(grp.group)}</legend>
+        ${grp.rules.map((r) => renderRuleField(r, values[r.key] ?? "")).join("")}
+      </fieldset>`,
+    )
+    .join('<div style="height:1px;background:var(--line);margin:2px 0"></div>');
+
+  return `
+    <form method="POST" action="/admin/config/rules" style="display:contents">
+    <div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+      ${sectionHead("scroll-text", "Reglas del negocio", "Envío, pago, cambios y garantía, stock. El bot las respeta siempre y nunca inventa una que no esté acá. Un campo vacío = el bot no promete nada sobre ese punto.")}
+      ${groups}
+      ${SAVE_BTN}
+    </div>
+    </form>`;
+}
+
+// ── Pestañas de Config ───────────────────────────────────────────────────────
+const CONFIG_TABS: { id: ConfigTabId; label: string; icon: string }[] = [
+  { id: "negocio", label: "Negocio", icon: "store" },
+  { id: "comportamiento", label: "Comportamiento", icon: "settings-2" },
+  { id: "cobros", label: "Cobros y catálogo", icon: "credit-card" },
+  { id: "reglas", label: "Reglas", icon: "scroll-text" },
+  { id: "ia", label: "Modelo de IA", icon: "brain" },
+];
+
+/** Qué pestañas de Config mostrar para el rubro activo. */
+function visibleConfigTabs(niche: NichePack, hasRules: boolean): typeof CONFIG_TABS {
+  let ids: ConfigTabId[] = niche.configTabs
+    ? [...niche.configTabs]
+    : CONFIG_TABS.map((t) => t.id);
+  for (const must of ["negocio", "ia"] as ConfigTabId[]) {
+    if (!ids.includes(must)) ids.push(must);
+  }
+  if (!hasRules) ids = ids.filter((id) => id !== "reglas");
+  // Orden canónico, sin duplicados.
+  return CONFIG_TABS.filter((t) => ids.includes(t.id));
+}
+
+/** Barra de pestañas (estilos + botones). El script va al final del body. */
+function configTabsBar(tabs: typeof CONFIG_TABS): string {
+  const buttons = tabs
+    .map(
+      (t) => `<button type="button" class="cfg-tab" data-tab="${t.id}" role="tab">
+        <i data-lucide="${t.icon}" width="14" height="14" style="vertical-align:-2px;margin-right:6px"></i>${esc(t.label)}
+      </button>`,
+    )
+    .join("");
+  return `
+    <style>
+      .cfg-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);flex-wrap:wrap;margin-bottom:4px}
+      .cfg-tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:9px 13px;font:inherit;font-size:12.5px;font-weight:600;color:var(--dim);cursor:pointer;white-space:nowrap}
+      .cfg-tab:hover{color:var(--cream)}
+      .cfg-tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+      .cfg-panel[hidden]{display:none}
+    </style>
+    <div class="cfg-tabs" role="tablist">${buttons}</div>`;
+}
+
+/** Script que activa las pestañas (recuerda la última en localStorage).
+ *  Se emite DESPUÉS de los paneles para que ya existan en el DOM. */
+const CONFIG_TABS_SCRIPT = `
+    <script>
+      (function(){
+        var tabs = document.querySelectorAll('.cfg-tab');
+        var panels = document.querySelectorAll('.cfg-panel');
+        if (!tabs.length) return;
+        function show(id){
+          panels.forEach(function(p){ p.hidden = p.dataset.panel !== id; });
+          tabs.forEach(function(b){ b.setAttribute('aria-selected', b.dataset.tab === id ? 'true' : 'false'); });
+          try { localStorage.setItem('forjaCfgTab', id); } catch(e){}
+        }
+        tabs.forEach(function(b){ b.addEventListener('click', function(){ show(b.dataset.tab); }); });
+        var saved; try { saved = localStorage.getItem('forjaCfgTab'); } catch(e){}
+        var has = Array.prototype.some.call(tabs, function(b){ return b.dataset.tab === saved; });
+        show(has ? saved : tabs[0].dataset.tab);
+      })();
+    </script>`;
+
 /** Card autocontenida del QR de pago: su propio form, se guarda al instante. */
 function renderQrUploaderCard(settings: Record<string, string>): string {
   return `
@@ -209,7 +351,7 @@ function renderQrUploaderCard(settings: Record<string, string>): string {
           ? `<img src="${settings[SETTING_KEYS.paymentQrUrl]}" alt="QR actual" width="96" height="96"
                style="border:1px solid var(--line);border-radius:8px;object-fit:contain;background:#fff;padding:4px">`
           : `<div class="text-dim" style="font-size:12px;width:96px;height:96px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);border-radius:8px">sin QR</div>`}
-        <form method="POST" action="/admin/config/qr-upload" enctype="multipart/form-data"
+        <form method="POST" action="/admin/config/qr-upload" enctype="multipart/form-data" hx-boost="false"
               style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <input type="file" name="qr" accept="image/png,image/jpeg,image/webp" required
                  style="font-size:12px;color:var(--muted);max-width:260px">
@@ -251,12 +393,13 @@ export function renderConfig(
   const sectionCard = (inner: string) =>
     `<div class="bg-panel border border-line rounded-xl" style="padding:20px;display:flex;flex-direction:column;gap:16px">${inner}</div>`;
 
-  const body = `
-    <div style="display:flex;flex-direction:column;gap:20px">
-      ${savedBanner}
-      ${errBanner}
+  const rulesHtml = renderRulesSection(env, settings);
+  const niche = getNiche(env);
+  const tabs = visibleConfigTabs(niche, rulesHtml !== "");
 
-      <!-- ═══ 1 · Tu negocio ═══ -->
+  // Cada pestaña = un panel. Los que el rubro no lista no se renderizan.
+  const panelHtml: Record<ConfigTabId, string> = {
+    negocio: `
       <form method="POST" action="/admin/config" style="display:contents">
       ${sectionCard(`
         ${sectionHead("store", "Tu negocio", `La información de ${esc(env.BUSINESS_NAME)} que el bot usa para responder a tus clientes: horarios, servicios, precios, ubicación.`)}
@@ -271,18 +414,15 @@ export function renderConfig(
           name: SETTING_KEYS.businessContext,
           label: "Información del negocio",
           help: "Horarios, servicios, precios, ubicación. El bot responde con esto. Editable en vivo — se aplica al guardar, sin re-desplegar.",
-          // Pre-llenado: si el panel aún no tiene override, muestra lo que el
-          // onboarding cargó en member/config.local (renderBusinessContext) para
-          // que el miembro VEA y edite sus horarios aquí desde el día 1.
           value: settings[SETTING_KEYS.businessContext] || renderBusinessContext(),
           placeholder: "Ej. Abrimos lunes a sábado de 9 a 7. Corte $150, barba $100. Estamos en Av. Reforma 123.",
           rows: 6,
         })}
         ${SAVE_BTN}
       `)}
-      </form>
+      </form>`,
 
-      <!-- ═══ 2 · Cómo trabaja tu bot ═══ -->
+    comportamiento: `
       <form method="POST" action="/admin/config" style="display:contents">
       ${sectionCard(`
         ${sectionHead("settings-2", "Cómo trabaja tu bot", "Personalidad, velocidad y criterios: qué tan formal habla, qué tan rápido responde y cuándo pasa a un humano.")}
@@ -310,9 +450,9 @@ export function renderConfig(
         </fieldset>
         ${SAVE_BTN}
       `)}
-      </form>
+      </form>`,
 
-      <!-- ═══ 3 · Cobros y catálogo ═══ -->
+    cobros: `
       <div style="display:flex;flex-direction:column;gap:12px">
         ${sectionHead("credit-card", "Cobros y catálogo", "Cómo cobra tu bot y qué vende: tu QR de pago, las instrucciones de pago y los productos que muestra.")}
         ${renderQrUploaderCard(settings)}
@@ -329,7 +469,7 @@ export function renderConfig(
           ${renderTextField({
             name: SETTING_KEYS.catalogSourceUrl,
             label: "URL de catálogo (opcional)",
-            help: "Si tu tienda ya publica sus productos, pégalos aquí y el bot los lee solo, siempre actualizado. Acepta el /products.json de Shopify, la API de WooCommerce (/wp-json/wc/store/products) o un CSV de Google Sheets publicado.",
+            help: "Si tu tienda ya publica sus productos, pégalos aquí y el bot los lee solo, siempre actualizado. Acepta el /products.json de Shopify, la API de WooCommerce (/wp-json/wc/store/products), un endpoint propio que devuelva { data: [...] } o un CSV de Google Sheets publicado.",
             value: settings[SETTING_KEYS.catalogSourceUrl] ?? "",
             placeholder: "https://tu-tienda.com/products.json",
           })}
@@ -343,9 +483,11 @@ export function renderConfig(
           ${SAVE_BTN}
         `)}
         </form>
-      </div>
+      </div>`,
 
-      <!-- ═══ 4 · Modelo de IA ═══ -->
+    reglas: rulesHtml,
+
+    ia: `
       <form method="POST" action="/admin/config" style="display:contents">
       ${sectionCard(`
         ${sectionHead("brain", "Modelo de IA", "Qué inteligencia artificial usa tu bot. Puedes usar tu propia API key para pagar tú el consumo directamente. En automático, el bot usa la configuración incluida (rápido para lo simple, inteligente para lo difícil).")}
@@ -353,8 +495,24 @@ export function renderConfig(
         ${renderLlmFields(settings)}
         ${SAVE_BTN}
       `)}
-      </form>
-    </div>`;
+      </form>`,
+  };
+
+  const panels = tabs
+    .map(
+      (t, i) =>
+        `<div class="cfg-panel" data-panel="${t.id}"${i === 0 ? "" : " hidden"}>${panelHtml[t.id]}</div>`,
+    )
+    .join("");
+
+  const body = `
+    <div style="display:flex;flex-direction:column;gap:16px">
+      ${savedBanner}
+      ${errBanner}
+      ${configTabsBar(tabs)}
+      ${panels}
+    </div>
+    ${CONFIG_TABS_SCRIPT}`;
 
   return layout({ title: "Config", activeTab: "config", body, env });
 }

@@ -32,7 +32,13 @@ export function scheduleAppointmentTool(env: Env, _getConversationId: () => stri
         ),
       startTime: z.string().optional().describe("ISO datetime con offset para reservar, ej. 2026-08-03T15:00:00-06:00"),
       attendeeName: z.string().optional(),
-      attendeeEmail: z.string().email().optional(),
+      // Patrón simple SIN lookaround: la validación de formato email de Zod
+      // compila a un regex con lookaround que algunos proveedores (p. ej. los
+      // modelos de OpenCode Go) rechazan al validar el JSON Schema de la tool.
+      attendeeEmail: z
+        .string()
+        .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "email inválido")
+        .optional(),
       service: z.string().optional().describe("nombre del servicio/tipo de cita solicitado"),
       notes: z.string().optional(),
     }),

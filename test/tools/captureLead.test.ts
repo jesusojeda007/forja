@@ -40,4 +40,31 @@ describe("captureLeadTool", () => {
     expect(list).toHaveLength(1);
     expect(list[0].intent).toBe("Corte + barba 5pm");
   });
+
+  it("guarda producto/monto y datos de entrega en metadata", async () => {
+    const tool = captureLeadTool(env, () => convId);
+    const result = (await tool.execute!(
+      {
+        name: "Juan",
+        intent: "Compra licuadora, envío a domicilio",
+        producto: "Licuadora 1500 ml",
+        monto: 229,
+        ciudad: "Santa Cruz",
+        direccion: "Barrio Urbari, calle 4 #12, portón negro",
+        zona_envio: "incluido",
+        ubicacion_mapa: "https://www.google.com/maps?q=-17.78,-63.18",
+      },
+      {} as any,
+    )) as { leadId: string };
+    expect(result.leadId).toBeTruthy();
+    const list = await leads.list(10);
+    const meta = JSON.parse(list[0].metadata!);
+    expect(meta).toMatchObject({
+      producto: "Licuadora 1500 ml",
+      monto: 229,
+      ciudad: "Santa Cruz",
+      zona_envio: "incluido",
+    });
+    expect(meta.direccion).toContain("Urbari");
+  });
 });

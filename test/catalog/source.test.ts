@@ -62,6 +62,77 @@ describe("normalizeSource", () => {
   it("basura → vacío (la tool responde sin matches, no explota)", () => {
     expect(normalizeSource("<html>404</html>", "https://x.local")).toEqual([]);
   });
+
+  it("endpoint custom { success, data: [...] } estilo Tamy Store: nombre/precio/codigo/stock, URL relativa → absoluta", () => {
+    const items = normalizeSource(
+      JSON.stringify({
+        success: true,
+        data: [
+          {
+            nombre: "Neceser",
+            precio: 49,
+            precio_descuento: null,
+            descripcion: "Neceser elegante",
+            codigo: "NEC-001",
+            stock: 3,
+            url: "/p/neceser-7cfb7a54",
+          },
+          { nombre: "Agotado", precio: 20, codigo: "AG-1", stock: 0, url: "/p/agotado" },
+        ],
+      }),
+      "https://tammy-store.vercel.app/api/products",
+    );
+    expect(items).toEqual([
+      {
+        name: "Neceser",
+        price: 49,
+        description: "Neceser elegante",
+        sku: "NEC-001",
+        url: "https://tammy-store.vercel.app/p/neceser-7cfb7a54",
+        stock: 3,
+      },
+      {
+        name: "Agotado",
+        price: 20,
+        description: undefined,
+        sku: "AG-1",
+        url: "https://tammy-store.vercel.app/p/agotado",
+        stock: 0,
+      },
+    ]);
+  });
+
+  it("mapea la foto del producto (imagen absoluta o relativa → absoluta)", () => {
+    const items = normalizeSource(
+      JSON.stringify({
+        data: [
+          { nombre: "Con foto CDN", precio: 10, imagen: "https://cdn.test/a.jpg" },
+          { nombre: "Foto relativa", precio: 20, imagen: "/img/b.jpg" },
+          { nombre: "Sin foto", precio: 30 },
+        ],
+      }),
+      "https://tienda.test/api/products",
+    );
+    expect(items[0].image).toBe("https://cdn.test/a.jpg");
+    expect(items[1].image).toBe("https://tienda.test/img/b.jpg");
+    expect(items[2].image).toBeUndefined();
+  });
+
+  it("precio_descuento válido gana sobre el precio de lista", () => {
+    const items = normalizeSource(
+      JSON.stringify({ data: [{ nombre: "Oferta", precio: 100, precio_descuento: 79 }] }),
+      "https://x.local/api",
+    );
+    expect(items[0].price).toBe(79);
+  });
+
+  it("{ items: [...] } también se desenvuelve", () => {
+    const items = normalizeSource(
+      JSON.stringify({ items: [{ name: "X", price: "10" }] }),
+      "https://x.local/feed",
+    );
+    expect(items[0]).toMatchObject({ name: "X", price: 10 });
+  });
 });
 
 describe("loadCatalog (integración con D1 + fetch)", () => {
@@ -90,8 +161,9 @@ describe("loadCatalog (integración con D1 + fetch)", () => {
   const shopify = (name: string, price: string) =>
     JSON.stringify({ products: [{ title: name, handle: "h", variants: [{ price }] }] });
 
-  it("sin URL configurada usa el catálogo local (seed del starter)", async () => {
-    expect(await loadCatalog(env)).toEqual([]);
+  it("sin URL configurada usa el catálogo local (seed del starter), sin fetch", async () => {
+    const { catalog: localSeed } = await import("../../member/config.local");
+    expect(await loadCatalog(env)).toEqual(localSeed);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
