@@ -330,6 +330,15 @@ export function renderConfig(
             <span class="text-dim text-[11.5px]">El bot mide qué tan "listo para comprar" está cada cliente y te avisa al instante (Telegram y correo) cuando alguien se pone caliente: quién es, por qué, y el link para cerrarlo. En el Resumen ves la lista priorizada.</span>
           </span>
         </label>
+        <input type="hidden" name="encuestas_present" value="1">
+        <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer">
+          <input type="checkbox" name="${SETTING_KEYS.encuestas}" value="auto" style="margin-top:3px"
+                 ${settings[SETTING_KEYS.encuestas] === "auto" ? "checked" : ""}>
+          <span style="display:flex;flex-direction:column;gap:2px">
+            <span class="font-display font-semibold text-[13px] text-cream">Encuestas de satisfacción</span>
+            <span class="text-dim text-[11.5px]">Cuando una conversación se cierra (hubo prospecto, cita o un humano la resolvió), el bot manda una encuesta corta: "¿cómo estuvo la atención, del 1 al 5?". Si alguien responde 1 o 2, te avisamos al instante. En el Resumen ves el promedio y los últimos comentarios.</span>
+          </span>
+        </label>
         <div style="display:flex;flex-direction:column;gap:4px">
           <span class="font-display font-semibold text-[13px] text-cream">Reportes automáticos</span>
           <span class="text-dim text-[11.5px]">Un resumen de tus números (chats, prospectos, temas, horas ahorradas) que te llega solo por Telegram y correo.</span>

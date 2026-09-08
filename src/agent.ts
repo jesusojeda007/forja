@@ -87,6 +87,26 @@ export class SupportAgent extends Agent<Env, SupportAgentState> {
       return { acknowledged: true };
     }
 
+    // Encuesta de satisfacción (superpoder, opt-in): si hay una encuesta
+    // pendiente para esta conversación y el cliente respondió con una nota, se
+    // registra y NO se pasa el turno al bot. Best-effort: si falla, se procesa
+    // el mensaje normal.
+    if (payload.text && !payload.audioUrl && !payload.imageUrl) {
+      try {
+        const { captureSurveyReply } = await import("./encuestas/run");
+        const handled = await captureSurveyReply(
+          this.env,
+          conv.id,
+          payload.channel,
+          payload.channelUserId,
+          payload.text,
+        );
+        if (handled) return { acknowledged: true };
+      } catch (e) {
+        console.warn("[encuestas] capture failed:", e);
+      }
+    }
+
     // Guardrail anti-spam: el mismo mensaje por 3ª vez entre los últimos 5 →
     // la conversación descansa 1 hora, sin respuesta y sin gastar LLM.
     if (payload.text && !payload.audioUrl && !payload.imageUrl) {

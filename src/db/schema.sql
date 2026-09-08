@@ -214,6 +214,22 @@ CREATE TABLE IF NOT EXISTS lead_scores (
 );
 CREATE INDEX IF NOT EXISTS idx_lead_scores_band ON lead_scores(band, score);
 
+-- Encuestas de satisfacción (superpoder): una encuesta corta por conversación
+-- "cerrada" (hubo lead, cita o ticket resuelto). La PRIMARY KEY es el candado
+-- anti-doble-envío (INSERT OR IGNORE), como followup_sends: una encuesta por
+-- conversación, para siempre. La respuesta del cliente actualiza la misma fila
+-- (rating 1-5 + comentario opcional). rating <= 2 dispara un aviso al dueño.
+CREATE TABLE IF NOT EXISTS survey_sends (
+  conversation_id TEXT PRIMARY KEY,
+  channel TEXT NOT NULL,
+  channel_user_id TEXT NOT NULL,
+  sent_at INTEGER NOT NULL,
+  rating INTEGER,
+  comment TEXT,
+  responded_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_survey_responded ON survey_sends(responded_at);
+
 -- Per-customer memory extracted by the insights analyzer. Injected into the
 -- system context when the same customer writes again.
 CREATE TABLE IF NOT EXISTS customer_facts (

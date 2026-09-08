@@ -146,6 +146,42 @@ export async function renderOverview(env: Env): Promise<string> {
       </section>`;
   }
 
+  // --- Encuestas de satisfacción ---------------------------------------------------
+  let encuestasSection = "";
+  {
+    const on =
+      (await db.first<{ value: string }>("SELECT value FROM settings WHERE key = 'encuestas'", []))?.value === "auto";
+    if (on) {
+      const { SurveyRepo } = await import("../../db/surveys");
+      const surveys = new SurveyRepo(db);
+      const s = await surveys.stats(thirtyDays);
+      const comments = await surveys.recentComments(5);
+      const avg = s.avg != null ? s.avg.toFixed(1) : "—";
+      const commentRows = comments
+        .map(
+          (c) => `<a href="/admin/conversations?c=${encodeURIComponent(c.conversation_id)}"
+            style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);text-decoration:none;color:inherit">
+            <span class="text-dim text-[11.5px] truncate" style="min-width:0">${esc(c.comment || "")}</span>
+            <span class="text-muted text-[12px]" style="white-space:nowrap">${c.rating}/5</span>
+          </a>`,
+        )
+        .join("");
+      encuestasSection = `
+        <section class="card bg-panel border border-line p-[18px]">
+          <h2 class="font-display font-semibold text-[13.5px] text-cream" style="margin:0 0 8px">Satisfacción (30 días)</h2>
+          ${
+            s.n > 0
+              ? `<div class="flex items-baseline gap-2" style="margin-bottom:8px">
+                   <span class="font-display font-semibold text-cream" style="font-size:26px">${avg}</span>
+                   <span class="text-muted text-[12px]">promedio · ${s.n} respuesta${s.n === 1 ? "" : "s"} · ${s.detractors} baja${s.detractors === 1 ? "" : "s"}</span>
+                 </div>
+                 ${commentRows}`
+              : `<p class="text-dim text-[12px]" style="margin:0">Aún sin respuestas. Cuando cierres conversaciones (prospecto, cita o handoff resuelto), el bot pedirá una nota del 1 al 5.</p>`
+          }
+        </section>`;
+    }
+  }
+
   // --- Conversaciones recientes -----------------------------------------------------
   const recentConvs = await db.all<{
     id: string;
@@ -361,6 +397,8 @@ export async function renderOverview(env: Env): Promise<string> {
       </section>
 
       ${cazadorSection}
+
+      ${encuestasSection}
 
       <section class="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-[14px]">
         ${activityChart}

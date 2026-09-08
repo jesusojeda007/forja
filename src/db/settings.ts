@@ -46,6 +46,11 @@ export const SETTING_KEYS = {
   // cada turno se puntúa el calor del lead y, si cruza a caliente, se le avisa
   // al dueño en el momento. Ver src/cazador/.
   cazador: "cazador",
+  // Encuestas de satisfacción (superpoder): "" / "off" (default) | "auto". Con
+  // "auto", un trabajo nocturno le manda una encuesta corta (nota 1-5) a cada
+  // conversación cerrada y la respuesta del cliente se captura en vivo. Nota
+  // baja avisa al dueño. Ver src/encuestas/.
+  encuestas: "encuestas",
   // BYO-LLM (dashboard "Modelo de IA"): the owner plugs their own provider,
   // API key and/or concrete model. Empty = the instance's env defaults.
   llmProvider: "llm_provider", // "" (auto) | anthropic | openai

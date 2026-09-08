@@ -534,6 +534,9 @@ adminApp.post("/config", async (c) => {
   if (form.get("cazador_present") !== null) {
     await repo.set(SETTING_KEYS.cazador, form.get(SETTING_KEYS.cazador) === "on" ? "on" : "off");
   }
+  if (form.get("encuestas_present") !== null) {
+    await repo.set(SETTING_KEYS.encuestas, form.get(SETTING_KEYS.encuestas) === "auto" ? "auto" : "off");
+  }
   const reportesRaw = form.get(SETTING_KEYS.reportes);
   if (reportesRaw !== null) {
     const v = String(reportesRaw);

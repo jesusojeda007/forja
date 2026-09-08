@@ -379,6 +379,10 @@ export default {
     // Reportes automáticos (superpoder, opt-in): resumen semanal/diario al dueño.
     const { runReport } = await import("./reportes/run");
     await runReport(env).catch((e) => console.error("reportes:", e));
+    // Encuestas de satisfacción (superpoder, opt-in): encuesta corta a cada
+    // conversación cerrada (la respuesta se captura en vivo desde agent.ingest).
+    const { runEncuestas } = await import("./encuestas/run");
+    await runEncuestas(env).catch((e) => console.error("encuestas:", e));
     // Modo COPILOTO (autonomy_level="copilot"): auto-aplica las mejoras seguras
     // detectadas (lecciones + KB sin huecos). Lo delicado espera al dueño.
     try {
