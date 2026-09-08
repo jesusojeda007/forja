@@ -14,6 +14,11 @@ import type { Env } from "../../env";
 import { isPro, PRO_ONLY_TABS } from "../../config";
 import { getNiche } from "../../niches";
 import type { NichePack } from "../../niches";
+import { resolveBranding, brandingStyle, type Branding } from "../../agencia/branding";
+
+function escAttr(s: string): string {
+  return s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!));
+}
 
 const UPGRADE_URL = "/admin/upgrade";
 
@@ -288,7 +293,13 @@ function applyNiche(item: Item, niche: NichePack | null): Item {
   return { ...item, label: niche.navLabel, icon: niche.navIcon };
 }
 
-function sidebar(activeTab: string, pro: boolean, niche: NichePack | null, disabledTabs: Set<string>): string {
+function sidebar(
+  activeTab: string,
+  pro: boolean,
+  niche: NichePack | null,
+  disabledTabs: Set<string>,
+  b: Branding,
+): string {
   const locked = (id: string) => !pro && (PRO_ONLY_TABS as readonly string[]).includes(id);
   const sections = NAV.map((sec) => {
     const visibleItems = sec.items.filter((i) => !disabledTabs.has(i.id));
@@ -307,11 +318,15 @@ function sidebar(activeTab: string, pro: boolean, niche: NichePack | null, disab
   return `<aside class="sb">
     <div class="sb-brand" style="padding:20px 18px 16px;border-bottom:1px solid var(--line)">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:34px;height:34px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent)">
-          <i data-lucide="zap" width="18" height="18" style="color:#fff"></i>
+        <div style="width:34px;height:34px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--accent);overflow:hidden">
+          ${
+            b.logoUrl
+              ? `<img src="${escAttr(b.logoUrl)}" alt="${escAttr(b.name)}" style="width:100%;height:100%;object-fit:contain">`
+              : `<i data-lucide="zap" width="18" height="18" style="color:#fff"></i>`
+          }
         </div>
         <div style="line-height:1.15">
-          <div style="font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:-.01em">Forja</div>
+          <div style="font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:-.01em">${escAttr(b.name)}</div>
           <div style="font-size:10.5px;color:var(--dim)">Panel · ${pro ? "Pro" : "Free"}</div>
         </div>
       </div>
@@ -327,6 +342,11 @@ function sidebar(activeTab: string, pro: boolean, niche: NichePack | null, disab
           <div style="font-size:10px;color:var(--dim)">sesión activa</div>
         </div>
       </div>
+      ${
+        b.agencyMode && b.showPoweredBy
+          ? `<div style="font-size:9.5px;color:var(--dim);text-align:center;margin-top:10px;letter-spacing:.04em">hecho con Forja</div>`
+          : ""
+      }
     </div>
   </aside>`;
 }
@@ -344,19 +364,22 @@ export function layout(opts: { title: string; activeTab: string; body: string; e
   ]);
   const section = NAV.find((s) => s.items.some((i) => i.id === opts.activeTab)) ?? NAV[0];
   const item = applyNiche(section.items.find((i) => i.id === opts.activeTab) ?? section.items[0], niche);
+  const b = resolveBranding(opts.env);
+  const titlePrefix = b.agencyMode ? `${b.name} · ` : "";
 
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${opts.title}</title>
+  <title>${titlePrefix}${opts.title}</title>
   ${HEAD_ASSETS}
   ${GLOBAL_STYLE}
+  ${brandingStyle(b)}
 </head>
 <body class="scanlines">
   <div class="shell">
-    ${sidebar(opts.activeTab, pro, niche, disabledTabs)}
+    ${sidebar(opts.activeTab, pro, niche, disabledTabs, b)}
     <div style="display:flex;flex-direction:column;min-width:0">
       <header style="position:sticky;top:0;z-index:30;background:rgba(250,250,250,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;align-items:center;gap:20px">
         <div style="min-width:0">
@@ -434,10 +457,14 @@ export function renderUpgrade(env: Env, feature?: string): string {
           El panel <b style="color:var(--cream)">Pro</b> le suma el cerebro analítico y de crecimiento:
         </p>
         <div style="display:grid;gap:10px;margin-bottom:22px">${perks}</div>
-        <a href="https://horizontesia.com" target="_blank" rel="noopener" class="bigbtn"
+        ${
+          resolveBranding(env).upsell
+            ? `<a href="https://horizontesia.com" target="_blank" rel="noopener" class="bigbtn"
           style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);border:1px solid var(--accent);color:#ffffff;padding:12px 20px;font-family:'Space Grotesk';font-weight:700;font-size:14px">
           <i data-lucide="arrow-up-right" width="17" height="17"></i> Subir a Pro con la comunidad
-        </a>
+        </a>`
+            : `<p style="font-size:13px;color:var(--muted);margin:0">Pídele a tu proveedor que active estas funciones en tu plan.</p>`
+        }
       </div>
     </div>`;
   return layout({ title: "Pro", activeTab: "overview", body, env });

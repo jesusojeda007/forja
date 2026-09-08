@@ -13,6 +13,11 @@ export interface Env {
   // Vars (member-set)
   BOT_NAME: string;
   PEER_BOTS?: string; // JSON [{name,url}] — otras instancias para el selector de proyectos
+  // Modo Agencia · whitelabel del panel (todo opcional, ver src/agencia/branding.ts).
+  AGENCY_NAME?: string;        // enciende el modo agencia + reemplaza "Forja" en el panel
+  AGENCY_ACCENT?: string;      // color de acento #rgb / #rrggbb
+  AGENCY_LOGO_URL?: string;    // logo del sidebar (solo https)
+  AGENCY_HIDE_POWERED?: string; // "1" esconde el "hecho con Forja" del pie
   WA_DAILY_TEMPLATE_CAP?: string; // tope diario de plantillas HSM (default 250 — tier 1 de Meta)
   BUSINESS_NAME: string;
   BOT_LANGUAGE: string;
